@@ -7,7 +7,6 @@ trait Card {
   def code: String
   def number: Int
   def pack: Pack
-  def illustrator: String
 }
 
 trait Cost {
@@ -24,6 +23,8 @@ trait Uniqueness {
 	def unique: Boolean
 }
 
+trait DrawCard extends Card with Cost with Allegiance
+
 case class Character(
 	name: String,
 	traits: Option[List[String]],
@@ -32,7 +33,6 @@ case class Character(
   code: String,
   number: Int,
   pack: Pack,
-	illustrator: String,
 
 	cost: String,
 	printedCost: Int,
@@ -46,7 +46,9 @@ case class Character(
 	intrigue: Boolean,
 	power: Boolean,
 	strength: Int
-) extends Card with Cost with Allegiance with Uniqueness
+) extends DrawCard with Uniqueness {
+	override def toString: String = s"Character: $name"
+}
 
 case class Attachment(
   name: String,
@@ -56,7 +58,6 @@ case class Attachment(
   code: String,
   number: Int,
   pack: Pack,
-	illustrator: String,
 
 	cost: String,
 	printedCost: Int,
@@ -65,7 +66,9 @@ case class Attachment(
 	loyalty: Boolean,
 
 	unique: Boolean
-) extends Card with Cost with Allegiance with Uniqueness
+) extends DrawCard with Uniqueness {
+	override def toString: String = s"Attachment: $name"
+}
 
 case class Location(
 	name: String,
@@ -75,7 +78,6 @@ case class Location(
   code: String,
   number: Int,
   pack: Pack,
-	illustrator: String,
 
 	cost: String,
 	printedCost: Int,
@@ -84,7 +86,9 @@ case class Location(
 	loyalty: Boolean,
 
 	unique: Boolean
-) extends Card with Cost with Allegiance with Uniqueness
+) extends DrawCard with Uniqueness {
+	override def toString: String = s"Location: $name"
+}
 
 case class Event(
 	name: String,
@@ -94,14 +98,15 @@ case class Event(
   code: String,
   number: Int,
   pack: Pack,
-	illustrator: String,
 
 	cost: String,
 	printedCost: Int,
 
 	faction: Faction,
 	loyalty: Boolean
-) extends Card with Cost with Allegiance
+) extends DrawCard {
+	override def toString: String = s"Event: $name"
+}
 
 case class Plot(
 	name: String,
@@ -111,7 +116,6 @@ case class Plot(
   code: String,
   number: Int,
   pack: Pack,
-	illustrator: String,
 
 	faction: Faction,
 	loyalty: Boolean,
@@ -120,7 +124,9 @@ case class Plot(
 	initiative: Int,
 	claim: Int,
 	reserve: Int
-) extends Card with Allegiance
+) extends Card with Allegiance {
+	override def toString: String = s"Plot: $name"
+}
 
 case class Agenda(
 	name: String,
@@ -129,9 +135,10 @@ case class Agenda(
 	limit: Int,
   code: String,
   number: Int,
-  pack: Pack,
-	illustrator: String
-) extends Card
+  pack: Pack
+) extends Card {
+	override def toString: String = s"Agenda: $name"
+}
 
 case class Title(
   name: String,
@@ -140,6 +147,7 @@ case class Title(
 	limit: Int,
 	code: String,
 	number: Int,
-	pack: Pack,
-	illustrator: String
-) extends Card
+	pack: Pack
+) extends Card {
+	override def toString: String = s"Title: $name"
+}

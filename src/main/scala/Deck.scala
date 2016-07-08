@@ -1,15 +1,26 @@
-import scala.reflect.ClassTag
 import scala.util.Random
 
-class Deck(faction: Faction, agenda: Option[Agenda], cards: List[Card]) {
+case class Deck(faction: Faction, agenda: Option[Agenda], cards: List[Card]) {
 
-  val plotDeck: List[Plot] = filterType[Plot](cards)
-  val drawDeck: List[Card with Cost with Allegiance] = ((cards diff plotDeck) diff filterType[Agenda](cards)).asInstanceOf[List[Card with Cost with Allegiance]]
+  val plotDeck: List[Plot] = cards.collect {
+    case card: Plot => card
+  }
+  val drawDeck: List[DrawCard] = (cards diff plotDeck) collect {
+    case drawCard: DrawCard => drawCard
+  }
 
-  val characters: List[Character] = filterType[Character](drawDeck)
-  val events: List[Event] = filterType[Event](drawDeck)
-  val attachments: List[Attachment] = filterType[Attachment](drawDeck)
-  val locations: List[Location] = filterType[Location](drawDeck)
+  val characters: List[Character] = drawDeck.collect {
+    case card: Character => card
+  }
+  val events: List[Event] = drawDeck.collect {
+    case card: Event => card
+  }
+  val attachments: List[Attachment] = drawDeck.collect {
+    case card: Attachment => card
+  }
+  val locations: List[Location] = drawDeck.collect {
+    case card: Location => card
+  }
 
   val iconStats: Map[String, CountStat] = {
     val militaryCount = characters.count(_.military)
@@ -17,9 +28,9 @@ class Deck(faction: Faction, agenda: Option[Agenda], cards: List[Card]) {
     val powerCount    = characters.count(_.power)
 
     Map(
-      "Military" -> CountStat(militaryCount, 100 * militaryCount / drawDeck.size),
-      "Intrigue" -> CountStat(intrigueCount, 100 * intrigueCount / drawDeck.size),
-      "Power"    -> CountStat(powerCount, 100 * powerCount / drawDeck.size)
+      "Military" -> CountStat(militaryCount, drawDeck.size),
+      "Intrigue" -> CountStat(intrigueCount, drawDeck.size),
+      "Power"    -> CountStat(powerCount,    drawDeck.size)
     )
   }
 
@@ -27,76 +38,59 @@ class Deck(faction: Faction, agenda: Option[Agenda], cards: List[Card]) {
     val maxStr = characters.maxBy(_.strength).strength
     (1 to maxStr).map(i => i -> characters.count(_.strength == i)).toMap
   }
+  val averageStrength = strengthStats.map(kv => kv._1 * kv._2).sum.toDouble / characters.size
 
   val characterCostStats = costStats(characters)
-  val averageCharacterCost = averageCountStat(characterCostStats)
+  val averageCharacterCost = averageCountStat(characterCostStats, characters.size)
 
   val eventCostStats = costStats(events)
-  val averageEventCost = averageCountStat(eventCostStats)
+  val averageEventCost = averageCountStat(eventCostStats, events.size)
 
   val attachmentCostStats = costStats(attachments)
-  val averageAttachmentCost = averageCountStat(attachmentCostStats)
+  val averageAttachmentCost = averageCountStat(attachmentCostStats, attachments.size)
 
   val locationCostStats = costStats(locations)
-  val averageLocationCost = averageCountStat(locationCostStats)
+  val averageLocationCost = averageCountStat(locationCostStats, locations.size)
 
-    // TODO calculate costs for all of the deck
   val totalCostStats = costStats(drawDeck)
-  val averageCost = averageCountStat(totalCostStats)
+  val averageCost = averageCountStat(totalCostStats, drawDeck.size)
 
-    // TODO calculate faction stats for all of the deck
   val factionStats = drawDeck.groupBy(_.faction).mapValues(_.size)
   
   val incomeStats = plotStats(plotDeck, _.income)
-  val incomeAverage = averageCountStat(incomeStats)
+  val averageIncome = averageCountStat(incomeStats, plotDeck.size)
   
   val initiativeStats = plotStats(plotDeck, _.initiative)
-  val initiativeAverage = averageCountStat(initiativeStats)
+  val averageInitiative = averageCountStat(initiativeStats, plotDeck.size)
   
   val claimStats = plotStats(plotDeck, _.claim)
-  val claimAverage = averageCountStat(claimStats)
+  val averageClaim = averageCountStat(claimStats, plotDeck.size)
   
   val reserveStats = plotStats(plotDeck, _.reserve)
-  val reserveAverage = averageCountStat(reserveStats)
+  val averageReserve = averageCountStat(reserveStats, plotDeck.size)
 
-  def costStats(cards: List[Cost]): Map[Int, CountStat] =
+  def costStats(cards: List[DrawCard]): Map[Int, CountStat] =
     (0 to cards.maxBy(_.printedCost).printedCost).map { i =>
       val count = cards.count(_.printedCost == i)
-      (i, CountStat(count, 100 * count / cards.size))
+      (i, CountStat(count, cards.size))
     }.toMap
 
-  def averageCountStat(costDistribution: Map[Int, CountStat]): Double =
-    costDistribution.map(kv => kv._1 * kv._2.count).sum.toDouble / plotDeck.size
+  def averageCountStat(costDistribution: Map[Int, CountStat], totalCards: Int): Double =
+    costDistribution.map(kv => kv._1 * kv._2.count).sum.toDouble / characters.size
 
-  def plotStats(plots: List[Plot], f :(Plot) => Int): Map[Int, CountStat] = {
+  def plotStats(plots: List[Plot], f :Plot => Int): Map[Int, CountStat] = {
     (0 to f(plots.maxBy(f))).map { i =>
       val count = plots.count(f(_) == i)
-      (i, CountStat(count, 100 * count / plotDeck.size))
+      (i, CountStat(count, plotDeck.size))
     }.toMap
-  }
-
-  def filterType[T <: Card : ClassTag](cards: List[Card]): List[T] = {
-    val clazz = implicitly[ClassTag[T]].runtimeClass
-    cards flatMap {
-      case card: T if clazz.isInstance(card) => Some(card)
-      case _ => None
-    }
   }
 
   def sampleHand: List[Card] = Random.shuffle(drawDeck).take(7)
 
-  case class CountStat(count: Int, pct: Double)
-}
+  case class CountStat(count: Int, total: Int) {
+    val pct: Double = 100 * count.toDouble / total.toDouble
 
-case class RawDeck(factionName: String, agendaCode: Option[String], slots: Map[String, Int])
-
-object Deck {
-  def fromRawDeck(rawDeck: RawDeck, cardMap: Map[String, Card]): Deck = {
-    val agenda = rawDeck.agendaCode.map(cardMap(_).asInstanceOf[Agenda])
-    val faction = Faction.values.find(_.name == rawDeck.factionName).get
-
-    val x = rawDeck.slots.keySet.map(cardMap(_)).toList
-
-    new Deck(faction, agenda, x)
+    override def toString: String = f"$pct%.2f%% ($count out of $total)."
   }
 }
+

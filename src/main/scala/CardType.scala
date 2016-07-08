@@ -1,22 +1,23 @@
 
-sealed abstract class CardType(val typeName: String)
-
-case object AgendaType     extends CardType("Agenda")
-case object AttachmentType extends CardType("Attachment")
-case object CharacterType  extends CardType("Character")
-case object EventType      extends CardType("Event")
-case object LocationType   extends CardType("Location")
-case object PlotType       extends CardType("Plot")
-case object TitleType      extends CardType("Title")
+sealed trait CardType
 
 object CardType {
+
+  case object Agenda     extends CardType
+  case object Attachment extends CardType
+  case object Character  extends CardType
+  case object Event      extends CardType
+  case object Location   extends CardType
+  case object Plot       extends CardType
+  case object Title      extends CardType
+
   val values = List(
-    AgendaType,
-    AttachmentType,
-    CharacterType,
-    EventType,
-    LocationType,
-    PlotType,
-    TitleType
+    Agenda,
+    Attachment,
+    Character,
+    Event,
+    Location,
+    Plot,
+    Title
   )
 }
