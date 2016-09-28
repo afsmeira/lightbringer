@@ -4,6 +4,7 @@ sealed trait Cycle
 object Cycle {
   case object Core           extends Cycle
   case object Deluxe         extends Cycle
+  case object Draft          extends Cycle
   case object Westeros       extends Cycle
   case object WarOfFiveKings extends Cycle
 }
@@ -61,6 +62,28 @@ object Pack {
     val name: String = "For Family Honor"
     val cycle: Cycle = Cycle.WarOfFiveKings
   }
+  case object ThereIsMyClaim extends Pack {
+    val name: String = "There Is My Claim"
+    val cycle: Cycle = Cycle.WarOfFiveKings
+  }
+  case object GhostsOfHarrenhal extends Pack {
+    val name: String = "Ghosts of Harrenhal"
+    val cycle: Cycle = Cycle.WarOfFiveKings
+  }
+  case object TyrionsChain extends Pack {
+    val name: String = "Tyrion's Chain"
+    val cycle: Cycle = Cycle.WarOfFiveKings
+  }
+
+  case object LionsOfCasterlyRock extends Pack {
+    val name: String = "Lions of Casterly Rock"
+    val cycle: Cycle = Cycle.Deluxe
+  }
+
+  case object ValyrianDraftSet extends Pack {
+    val name: String = "Valyrian Draft Set"
+    val cycle: Cycle = Cycle.Draft
+  }
 
   val values = List(
     CoreSet,
@@ -73,6 +96,11 @@ object Pack {
     WolvesOfTheNorth,
     AcrossTheSevenKingdoms,
     CalledToArms,
-    ForFamilyHonor
+    ForFamilyHonor,
+    ThereIsMyClaim,
+    GhostsOfHarrenhal,
+    TyrionsChain,
+    LionsOfCasterlyRock,
+    ValyrianDraftSet
   )
 }

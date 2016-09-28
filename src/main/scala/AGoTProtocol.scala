@@ -1,8 +1,9 @@
 import spray.json._
 
-object CardProtocol extends DefaultJsonProtocol {
+object AGoTProtocol extends DefaultJsonProtocol {
 
-  implicit object CardReader extends RootJsonFormat[Card] {
+  // This object is not just a JSON Reader because the Unmarshal.to() method requires a full JSON format
+  implicit object CardProtocol extends RootJsonFormat[Card] {
     override def read(json: JsValue): Card = {
 
       def readAgenda(json: JsValue) = Agenda(
@@ -90,7 +91,8 @@ object CardProtocol extends DefaultJsonProtocol {
         fromField[Boolean](json, "is_loyal"),
         fromField[Int](json, "income"),
         fromField[Int](json, "initiative"),
-        fromField[Int](json, "claim"),
+        fromField[Option[Int]](json, "claim").map(_.toString).getOrElse("X"),
+        fromField[Option[Int]](json, "claim").getOrElse(0),
         fromField[Int](json, "reserve")
       )
 

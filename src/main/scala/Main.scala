@@ -1,18 +1,20 @@
 
-import java.security.SecureRandom
+import java.io.PrintWriter
+import java.nio.file.{Files, Paths}
 import java.security.cert.X509Certificate
-import javax.net.ssl.{KeyManager, X509TrustManager, SSLContext}
+import java.time.temporal.ChronoUnit
+import javax.net.ssl.{KeyManager, SSLContext, X509TrustManager}
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.{HttpsConnectionContext, Http}
+import akka.http.scaladsl.{Http, HttpsConnectionContext}
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.unmarshalling.Unmarshal
-//import akka.http.scaladsl.unmarshalling._
 import akka.stream.ActorMaterializer
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
+import scala.io.Source
 
 object Main extends App {
 
@@ -20,7 +22,8 @@ object Main extends App {
 	implicit val materializer = ActorMaterializer()
 
 	import materializer.executionContext
-	import CardProtocol._
+  import spray.json._
+  import AGoTProtocol._
 
   val trustfulSslContext: SSLContext = {
     object WideOpenX509TrustManager extends X509TrustManager {
@@ -36,19 +39,29 @@ object Main extends App {
 
 	private val context = new HttpsConnectionContext(trustfulSslContext)
 
-	println("DO REQUEST")
-	val cardMap = Await.result(Http().singleRequest(HttpRequest(uri = "https://thronesdb.com/api/public/cards/"), context)
-    .flatMap(r => Unmarshal(r.entity).to[List[Card]])
-    .map(_.groupBy(_.code).mapValues(_.head)), 1 minute)
+  val path = Paths.get(".cards.json")
+  val instant = java.time.Instant.now().minus(20, ChronoUnit.DAYS)
 
-//    .result(1 minute)
+  val cardMap = if (Files.exists(path) && Files.getLastModifiedTime(path).toInstant.isAfter(instant)) {
+    Source.fromFile(".cards.json").mkString.parseJson.convertTo[List[Card]].groupBy(_.code).mapValues(_.head)
+  } else {
+    val cardsStr = Await.result(
+      Http().singleRequest(HttpRequest(uri = "https://thronesdb.com/api/public/cards/"), context).flatMap { response =>
+        Unmarshal(response.entity).to[String]
+      }, 1 minute)
+
+    new PrintWriter(".cards.json") {
+      try {
+        println(cardsStr)
+      } finally {
+        close()
+      }
+    }
+    cardsStr.parseJson.convertTo[List[Card]].groupBy(_.code).mapValues(_.head)
+  }
 
 	val deck = Await.result(Http().singleRequest(HttpRequest(uri = "https://thronesdb.com/api/public/decklist/1"), context)
 		.flatMap(r => Unmarshal(r.entity).to[Deck](DeckProtocol(cardMap), implicitly, implicitly)), 1 minute)
-//		.result(1 minute)
 
-  println("Deck: " + deck.cards.mkString("\n"))
-  println("AVG CHAR COST " + deck.averageCharacterCost)
-  println("CHAR COST STATS " + deck.characterCostStats)
-	println("SAMPLE HAND " + deck.sampleHand)
+  println(deck.fullReport)
 }

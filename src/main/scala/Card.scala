@@ -122,7 +122,8 @@ case class Plot(
 
 	income: Int,
 	initiative: Int,
-	claim: Int,
+	claim: String,
+	printedClaim: Int,
 	reserve: Int
 ) extends Card with Allegiance {
 	override def toString: String = s"Plot: $name"
