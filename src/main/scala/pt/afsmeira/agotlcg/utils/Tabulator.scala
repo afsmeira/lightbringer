@@ -1,3 +1,5 @@
+package pt.afsmeira.agotlcg.utils
+
 object Tabulator {
   def format(table: Seq[Seq[Any]]) = table match {
     case Seq() => ""

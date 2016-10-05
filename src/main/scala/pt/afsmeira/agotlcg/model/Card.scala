@@ -1,3 +1,4 @@
+package pt.afsmeira.agotlcg.model
 
 trait Card {
   def name: String

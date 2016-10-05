@@ -1,3 +1,6 @@
+package pt.afsmeira.agotlcg.utils
+
+import pt.afsmeira.agotlcg.model._
 import spray.json._
 
 object AGoTProtocol extends DefaultJsonProtocol {

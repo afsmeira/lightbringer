@@ -1,3 +1,7 @@
+package pt.afsmeira.agotlcg.model
+
+import pt.afsmeira.agotlcg.utils.Tabulator
+
 import scala.util.Random
 
 case class Deck(faction: Faction, agenda: Option[Agenda], cards: List[Card]) {

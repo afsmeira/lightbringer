@@ -1,3 +1,5 @@
+package pt.afsmeira.agotlcg
+
 
 import java.io.PrintWriter
 import java.nio.file.{Files, Paths}
@@ -6,11 +8,12 @@ import java.time.temporal.ChronoUnit
 import javax.net.ssl.{KeyManager, SSLContext, X509TrustManager}
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.{Http, HttpsConnectionContext}
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.unmarshalling.Unmarshal
+import akka.http.scaladsl.{Http, HttpsConnectionContext}
 import akka.stream.ActorMaterializer
+import pt.afsmeira.agotlcg.model.{Card, Deck}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -22,8 +25,8 @@ object Main extends App {
 	implicit val materializer = ActorMaterializer()
 
 	import materializer.executionContext
-  import spray.json._
-  import AGoTProtocol._
+	import pt.afsmeira.agotlcg.utils.AGoTProtocol._
+	import spray.json._
 
   val trustfulSslContext: SSLContext = {
     object WideOpenX509TrustManager extends X509TrustManager {

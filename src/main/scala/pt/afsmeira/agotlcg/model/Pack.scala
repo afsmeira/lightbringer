@@ -1,3 +1,4 @@
+package pt.afsmeira.agotlcg.model
 
 sealed trait Cycle
 
