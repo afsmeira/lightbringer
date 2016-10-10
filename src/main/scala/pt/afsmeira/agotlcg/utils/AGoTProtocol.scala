@@ -127,13 +127,14 @@ object AGoTProtocol extends DefaultJsonProtocol {
     override def write(obj: Deck): JsValue = JsObject.empty
 
     override def read(json: JsValue): Deck = {
-      val faction   = fromField[Faction](json, "faction_name")
-      val agenda    = fromField[Option[String]](json, "agenda_code").map(cardMap(_).asInstanceOf[Agenda])
-      val cards = fromField[Map[String, Int]](json, "slots").collect {
+      val faction = fromField[Faction](json, "faction_name")
+      val agenda  = fromField[Option[String]](json, "agenda_code").map(cardMap(_).asInstanceOf[Agenda])
+      val cards   = fromField[Map[String, Int]](json, "slots").collect {
         case (code, copies) if !agenda.exists(_.code == code) => List.fill(copies)(cardMap(code))
-      }.flatten.toList
+      }.flatten.toSeq
+      val name = fromField[Option[String]](json, "name")
 
-      Deck(faction, agenda, cards)
+      Deck(faction, agenda, cards, name)
     }
   }
 

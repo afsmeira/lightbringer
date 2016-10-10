@@ -2,7 +2,7 @@ package pt.afsmeira.agotlcg.model
 
 trait Card {
   def name: String
-  def traits: Option[List[String]]
+  def traits: Option[Seq[String]]
   def flavourText: Option[String]
   def limit: Int
   def code: String
@@ -28,7 +28,7 @@ trait DrawCard extends Card with Cost with Allegiance
 
 case class Character(
 	name: String,
-	traits: Option[List[String]],
+	traits: Option[Seq[String]],
 	flavourText: Option[String],
 	limit: Int,
   code: String,
@@ -53,7 +53,7 @@ case class Character(
 
 case class Attachment(
   name: String,
-	traits: Option[List[String]],
+	traits: Option[Seq[String]],
 	flavourText: Option[String],
 	limit: Int,
   code: String,
@@ -73,7 +73,7 @@ case class Attachment(
 
 case class Location(
 	name: String,
-	traits: Option[List[String]],
+	traits: Option[Seq[String]],
 	flavourText: Option[String],
 	limit: Int,
   code: String,
@@ -93,7 +93,7 @@ case class Location(
 
 case class Event(
 	name: String,
-	traits: Option[List[String]],
+	traits: Option[Seq[String]],
 	flavourText: Option[String],
 	limit: Int,
   code: String,
@@ -111,7 +111,7 @@ case class Event(
 
 case class Plot(
 	name: String,
-	traits: Option[List[String]],
+	traits: Option[Seq[String]],
 	flavourText: Option[String],
 	limit: Int,
   code: String,
@@ -132,7 +132,7 @@ case class Plot(
 
 case class Agenda(
 	name: String,
-	traits: Option[List[String]],
+	traits: Option[Seq[String]],
 	flavourText: Option[String],
 	limit: Int,
   code: String,
@@ -144,7 +144,7 @@ case class Agenda(
 
 case class Title(
   name: String,
-	traits: Option[List[String]],
+	traits: Option[Seq[String]],
 	flavourText: Option[String],
 	limit: Int,
 	code: String,

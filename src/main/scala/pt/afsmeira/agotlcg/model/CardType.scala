@@ -13,7 +13,7 @@ object CardType {
   case object Plot       extends CardType
   case object Title      extends CardType
 
-  val values = List(
+  val values = Seq(
     Agenda,
     Attachment,
     Character,

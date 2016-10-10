@@ -2,29 +2,31 @@ package pt.afsmeira.agotlcg.model
 
 import pt.afsmeira.agotlcg.utils.Tabulator
 
+import scala.reflect.ClassTag
+import scala.reflect._
 import scala.util.Random
 
-case class Deck(faction: Faction, agenda: Option[Agenda], cards: List[Card]) {
+case class Deck(faction: Faction, agenda: Option[Agenda], cards: Seq[Card], name: Option[String]) {
 
   import Deck.CountStat
 
-  val plotDeck: List[Plot] = cards.collect {
+  val plotDeck: Seq[Plot] = cards.collect {
     case card: Plot => card
   }
-  val drawDeck: List[DrawCard] = (cards diff plotDeck) collect {
+  val drawDeck: Seq[DrawCard] = (cards diff plotDeck) collect {
     case drawCard: DrawCard => drawCard
   }
 
-  val characters: List[Character] = drawDeck.collect {
+  val characters: Seq[Character] = drawDeck.collect {
     case card: Character => card
   }
-  val events: List[Event] = drawDeck.collect {
+  val events: Seq[Event] = drawDeck.collect {
     case card: Event => card
   }
-  val attachments: List[Attachment] = drawDeck.collect {
+  val attachments: Seq[Attachment] = drawDeck.collect {
     case card: Attachment => card
   }
-  val locations: List[Location] = drawDeck.collect {
+  val locations: Seq[Location] = drawDeck.collect {
     case card: Location => card
   }
 
@@ -75,7 +77,7 @@ case class Deck(faction: Faction, agenda: Option[Agenda], cards: List[Card]) {
   val reserveStats = plotStats(plotDeck, _.reserve)
   val averageReserve = averageCountStat(reserveStats, plotDeck.size)
 
-  def costStats(cards: List[DrawCard]): Map[Int, CountStat] =
+  def costStats(cards: Seq[DrawCard]): Map[Int, CountStat] =
     (0 to cards.maxBy(_.printedCost).printedCost).map { i =>
       val count = cards.count(_.printedCost == i)
       (i, CountStat(count, cards.size))
@@ -84,14 +86,14 @@ case class Deck(faction: Faction, agenda: Option[Agenda], cards: List[Card]) {
   def averageCountStat(costDistribution: Map[Int, CountStat], totalCards: Int): Double =
     costDistribution.map(kv => kv._1 * kv._2.count).sum.toDouble / characters.size
 
-  def plotStats(plots: List[Plot], f: Plot => Int): Map[Int, CountStat] = {
+  def plotStats(plots: Seq[Plot], f: Plot => Int): Map[Int, CountStat] = {
     (0 to f(plots.maxBy(f))).map { i =>
       val count = plots.count(f(_) == i)
       (i, CountStat(count, plotDeck.size))
     }.toMap
   }
 
-  def sampleHand: List[Card] = Random.shuffle(drawDeck).take(7)
+  def sampleHand: Seq[Card] = Random.shuffle(drawDeck).take(7)
 
   def generalStatsReport: String = "Overall Stats\n" +
     Tabulator.format(Seq(
@@ -104,6 +106,15 @@ case class Deck(faction: Faction, agenda: Option[Agenda], cards: List[Card]) {
       factionStats.keys.toSeq,
       factionStats.values.toSeq
     ))
+
+  def overview: String = Seq(
+    s"${faction.name}\n${agenda.map(_.name).getOrElse("")}",
+    listing(plotDeck),
+    listing(characters),
+    listing(attachments),
+    listing(locations),
+    listing(events)
+  ).mkString("\n\n")
 
   def iconStatsReport: String = "Icon Stats\n" + iconStats.toTable
 
@@ -121,11 +132,21 @@ case class Deck(faction: Faction, agenda: Option[Agenda], cards: List[Card]) {
 
   def plotClaimStatsReport: String = "Plot Claim Stats\n" + claimStats.toTable
 
-  def plotReserveStatsReport: String = "Plot Reserve Stats\n" + reserveStats.toTable
+  def plotReserveStatsReport: String = "Plot Reserve Stats\n" + reserveStats.toTable + "\n"
 
-  def fullReport: String = Seq(generalStatsReport, factionStatsReport, iconStatsReport, characterCostStatsReport,
+  def fullReport: String = Seq(overview, generalStatsReport, factionStatsReport, iconStatsReport, characterCostStatsReport,
     attachmentCostStatsReport, locationCostStatsReport, eventCostStatsReport, plotIncomeStatsReport,
     plotInitiativeStatsReport, plotClaimStatsReport, plotReserveStatsReport).mkString("\n\n")
+
+
+  def listing[T <: Card : ClassTag](cardList: Seq[T]): String = {
+    val title   = s"${classTag[T].runtimeClass.getSimpleName} (${cardList.size})"
+    val listing = cardList.groupBy(identity).toSeq.sortBy(_._1.name).map {
+      case (card, cardReps) => s"${cardReps.size.toString}x ${card.name}"
+    }
+
+    (title +: listing) mkString "\n"
+  }
 }
 
 object Deck {

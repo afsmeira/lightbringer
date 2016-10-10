@@ -86,7 +86,7 @@ object Pack {
     val cycle: Cycle = Cycle.Draft
   }
 
-  val values = List(
+  val values = Seq(
     CoreSet,
     TakingTheBlack,
     TheRoadToWinterfell,

@@ -34,7 +34,7 @@ object Faction {
     val name: String = "House Tyrell"
   }
 
-  val values = List(
+  val values = Seq(
     Neutral,
     Baratheon,
     Greyjoy,

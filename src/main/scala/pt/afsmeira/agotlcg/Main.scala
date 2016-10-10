@@ -18,7 +18,7 @@ object Main extends App {
   } else {
     val cards = ConnectionUtils.requestCards[String]("https://thronesdb.com/api/public/cards/")
     FileUtils.writeCardsFile(cards)
-    cards.parseJson.convertTo[List[Card]].groupBy(_.code).mapValues(_.head)
+    cards.parseJson.convertTo[Seq[Card]].groupBy(_.code).mapValues(_.head)
   }
 
   implicit val deckProtocol = DeckProtocol(cardMap)
