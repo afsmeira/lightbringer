@@ -23,6 +23,6 @@ object Main extends App {
 
   implicit val deckProtocol = DeckProtocol(cardMap)
 
-  val deck = ConnectionUtils.requestCards[Deck]("https://thronesdb.com/api/public/decklist/1")
+  val deck = ConnectionUtils.requestCards[Deck]("https://thronesdb.com/api/public/decklist/5993")
   println(deck.fullReport)
 }

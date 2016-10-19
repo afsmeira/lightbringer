@@ -1,173 +1,130 @@
 package pt.afsmeira.agotlcg.model
 
+import pt.afsmeira.agotlcg.model.Deck.{FieldStatistics, StatisticPoint}
 import pt.afsmeira.agotlcg.utils.Tabulator
 
 import scala.reflect.ClassTag
 import scala.reflect._
-import scala.util.Random
 
-case class Deck(faction: Faction, agenda: Option[Agenda], cards: Seq[Card], name: Option[String]) {
+case class Deck(house: Faction, agenda: Option[Agenda], cards: Seq[Card], name: Option[String]) {
 
-  import Deck.CountStat
-
-  val plotDeck: Seq[Plot] = cards.collect {
+  private val plotDeck: Seq[Plot] = cards.collect {
     case card: Plot => card
   }
-  val drawDeck: Seq[DrawCard] = (cards diff plotDeck) collect {
+  private val drawDeck: Seq[DrawCard] = (cards diff plotDeck) collect {
     case drawCard: DrawCard => drawCard
   }
 
-  val characters: Seq[Character] = drawDeck.collect {
+  private val characters: Seq[Character] = drawDeck.collect {
     case card: Character => card
   }
-  val events: Seq[Event] = drawDeck.collect {
+  private val events: Seq[Event] = drawDeck.collect {
     case card: Event => card
   }
-  val attachments: Seq[Attachment] = drawDeck.collect {
+  private val attachments: Seq[Attachment] = drawDeck.collect {
     case card: Attachment => card
   }
-  val locations: Seq[Location] = drawDeck.collect {
+  private val locations: Seq[Location] = drawDeck.collect {
     case card: Location => card
   }
 
-  val iconStats: Map[String, CountStat] = {
-    val militaryCount = characters.count(_.military)
-    val intrigueCount = characters.count(_.intrigue)
-    val powerCount    = characters.count(_.power)
-
-    Map(
-      "Military" -> CountStat(militaryCount, drawDeck.size),
-      "Intrigue" -> CountStat(intrigueCount, drawDeck.size),
-      "Power"    -> CountStat(powerCount,    drawDeck.size)
-    )
-  }
-
-  val strengthStats: Map[Int, Int] = {
-    val maxStr = characters.maxBy(_.strength).strength
-    (1 to maxStr).map(i => i -> characters.count(_.strength == i)).toMap
-  }
-  val averageStrength = strengthStats.map(kv => kv._1 * kv._2).sum.toDouble / characters.size
-
-  val characterCostStats = costStats(characters)
-  val averageCharacterCost = averageCountStat(characterCostStats, characters.size)
-
-  val eventCostStats = costStats(events)
-  val averageEventCost = averageCountStat(eventCostStats, events.size)
-
-  val attachmentCostStats = costStats(attachments)
-  val averageAttachmentCost = averageCountStat(attachmentCostStats, attachments.size)
-
-  val locationCostStats = costStats(locations)
-  val averageLocationCost = averageCountStat(locationCostStats, locations.size)
-
-  val totalCostStats = costStats(drawDeck)
-  val averageCost = averageCountStat(totalCostStats, drawDeck.size)
-
-  val factionStats = drawDeck.groupBy(_.faction).mapValues(_.size)
-  
-  val incomeStats = plotStats(plotDeck, _.income)
-  val averageIncome = averageCountStat(incomeStats, plotDeck.size)
-  
-  val initiativeStats = plotStats(plotDeck, _.initiative)
-  val averageInitiative = averageCountStat(initiativeStats, plotDeck.size)
-  
-  val claimStats = plotStats(plotDeck, _.printedClaim)
-  val averageClaim = averageCountStat(claimStats, plotDeck.size)
-  
-  val reserveStats = plotStats(plotDeck, _.reserve)
-  val averageReserve = averageCountStat(reserveStats, plotDeck.size)
-
-  def costStats(cards: Seq[DrawCard]): Map[Int, CountStat] =
-    (0 to cards.maxBy(_.printedCost).printedCost).map { i =>
-      val count = cards.count(_.printedCost == i)
-      (i, CountStat(count, cards.size))
-    }.toMap
-
-  def averageCountStat(costDistribution: Map[Int, CountStat], totalCards: Int): Double =
-    costDistribution.map(kv => kv._1 * kv._2.count).sum.toDouble / characters.size
-
-  def plotStats(plots: Seq[Plot], f: Plot => Int): Map[Int, CountStat] = {
-    (0 to f(plots.maxBy(f))).map { i =>
-      val count = plots.count(f(_) == i)
-      (i, CountStat(count, plotDeck.size))
-    }.toMap
-  }
-
-  def sampleHand: Seq[Card] = Random.shuffle(drawDeck).take(7)
-
-  def generalStatsReport: String = "Overall Stats\n" +
-    Tabulator.format(Seq(
-      Seq("Characters", "Attachments", "Locations", "Events", "TOTAL"),
-      Seq(characters.size, attachments.size, locations.size, events.size, drawDeck.size)
-    ))
-
-  def factionStatsReport: String = "Faction Stats\n" +
-    Tabulator.format(Seq(
-      factionStats.keys.toSeq,
-      factionStats.values.toSeq
-    ))
-
-  def overview: String = Seq(
-    s"${faction.name}\n${agenda.map(_.name).getOrElse("")}",
+  private val overview: String = Seq(
+    house.name,
+    agenda.map(_.name).mkString,
+    s"Draw Deck: ${drawDeck.size} cards\n",
     listing(plotDeck),
     listing(characters),
     listing(attachments),
     listing(locations),
     listing(events)
-  ).mkString("\n\n")
+  ).filterNot(_.isEmpty).mkString("\n")
 
-  def iconStatsReport: String = "Icon Stats\n" + iconStats.toTable
+  private val iconStats: Seq[StatisticPoint[String]] = Seq(
+    StatisticPoint("Military", characters.count(_.military), characters.size),
+    StatisticPoint("Intrigue", characters.count(_.intrigue), characters.size),
+    StatisticPoint("Power",    characters.count(_.power),    characters.size)
+  )
+  private val factionStats = drawDeck.groupBy(_.faction).map { case (faction, factionCards) =>
+    val totalFactionCards = factionCards.size
+    val factionPercentage = totalFactionCards.toDouble / drawDeck.size.toDouble
 
-  def characterCostStatsReport: String = "Character Cost Stats\n" + characterCostStats.toTable
+    StatisticPoint[String](faction.name, totalFactionCards, factionPercentage)
+  }.toSeq
 
-  def attachmentCostStatsReport: String = "Attachment Cost Stats\n" + attachmentCostStats.toTable
+  private val strengthStats       = FieldStatistics[Character] (characters,  _.strength,    "Strength")
+  private val characterCostStats  = FieldStatistics[Character] (characters,  _.printedCost, "Character Cost")
+  private val eventCostStats      = FieldStatistics[Event]     (events,      _.printedCost, "Event Cost")
+  private val attachmentCostStats = FieldStatistics[Attachment](attachments, _.printedCost, "Attachment Cost")
+  private val locationCostStats   = FieldStatistics[Location]  (locations,   _.printedCost, "Location Cost")
+  private val totalCostStats      = FieldStatistics[DrawCard]  (drawDeck,    _.printedCost, "Total Cost")
 
-  def locationCostStatsReport: String = "Location Cost Stats\n" + locationCostStats.toTable
-
-  def eventCostStatsReport: String = "Event Cost Stats\n" + eventCostStats.toTable
-
-  def plotIncomeStatsReport: String = "Plot Income Stats\n" + incomeStats.toTable
-
-  def plotInitiativeStatsReport: String = "Plot Initiative Stats\n" + initiativeStats.toTable
-
-  def plotClaimStatsReport: String = "Plot Claim Stats\n" + claimStats.toTable
-
-  def plotReserveStatsReport: String = "Plot Reserve Stats\n" + reserveStats.toTable + "\n"
-
-  def fullReport: String = Seq(overview, generalStatsReport, factionStatsReport, iconStatsReport, characterCostStatsReport,
-    attachmentCostStatsReport, locationCostStatsReport, eventCostStatsReport, plotIncomeStatsReport,
-    plotInitiativeStatsReport, plotClaimStatsReport, plotReserveStatsReport).mkString("\n\n")
+  private val incomeStats         = FieldStatistics[Plot](plotDeck, _.income,       "Income")
+  private val initiativeStats     = FieldStatistics[Plot](plotDeck, _.initiative,   "Initiative")
+  private val claimStats          = FieldStatistics[Plot](plotDeck, _.printedClaim, "Claim")
+  private val reserveStats        = FieldStatistics[Plot](plotDeck, _.reserve,      "Reserve")
 
 
-  def listing[T <: Card : ClassTag](cardList: Seq[T]): String = {
-    val title   = s"${classTag[T].runtimeClass.getSimpleName} (${cardList.size})"
-    val listing = cardList.groupBy(identity).toSeq.sortBy(_._1.name).map {
-      case (card, cardReps) => s"${cardReps.size.toString}x ${card.name}"
+  private def listing[C <: Card : ClassTag](cards: Seq[C]): String = {
+    val title   = s"${classTag[C].runtimeClass.getSimpleName} (${cards.size})"
+    val listing = cards.groupBy(identity).toSeq.sortBy(_._1.name).map {
+      case (card, cardCopies) => s"${cardCopies.size.toString}x ${card.name}"
     }
-
-    (title +: listing) mkString "\n"
+    if (listing.isEmpty) "" else (title +: listing).mkString("", "\n", "\n")
   }
+
+  def fullReport: String = Seq(
+    overview,
+    factionStats.toTable("Faction"),
+    iconStats.toTable("Icon"),
+    strengthStats.toTable,
+    characterCostStats.toTable,
+    attachmentCostStats.toTable,
+    locationCostStats.toTable,
+    eventCostStats.toTable,
+    totalCostStats.toTable,
+    incomeStats.toTable,
+    initiativeStats.toTable,
+    claimStats.toTable,
+    reserveStats.toTable
+  ).filterNot(_.isEmpty).mkString("\n\n")
 }
 
 object Deck {
-  case class CountStat(count: Int, total: Int) {
-    val pct: Double = 100 * count.toDouble / total.toDouble
+  case class FieldStatistics[C <: Card](cards: Seq[C], field: C => Int, name: String) {
+    // maxBy is not safe on empty collections, so the argument is matched
+    val distribution: Seq[StatisticPoint[Int]] = cards match {
+      case Nil => Seq.empty
+      case _   => (0 to field(cards.maxBy(field))).map { value =>
+        val count = cards.count(field(_) == value)
+        StatisticPoint (value, count, 100 * count.toDouble / cards.size.toDouble)
+      }
+    }
 
-    override def toString: String = f"$pct%.2f%% ($count out of $total)."
+    val average: Double = {
+      val (weightedTotal, total) = distribution.map { statPoint =>
+        statPoint.value * statPoint.count -> statPoint.count
+      } unzip match {
+        case (partialWeightedTotals, totals) => partialWeightedTotals.sum -> totals.sum
+      }
+      weightedTotal.toDouble / total.toDouble
+    }
+
+    def toTable: String = if (distribution.isEmpty) "" else f"${distribution.toTable(name)}\nAverage: $average%.2f"
   }
 
-  implicit class ConvertToTable(val stats: Map[_, CountStat]) extends AnyVal {
-    def toTable: String = {
-      val sortedStats = stats.toSeq.sortBy {
-        case (key: Int, _) => f"$key%2d"
-        case (key, _) => key.toString
-      }
-      val costRow        = "Cost" +: sortedStats.map(_._1.toString) :+ "TOTAL"
-      val cardinalityRow = "#" +: sortedStats.map(_._2.count.toString) :+ stats.values.head.total.toString
-      val pctRow         = "%" +: sortedStats.map(stat => f"${stat._2.pct}%.2f") :+ "100"
+  case class StatisticPoint[T](value: T, count: Int, percentage: Double)
 
-      Tabulator.format(Seq(costRow, cardinalityRow, pctRow))
+  implicit class ConvertToTable(val distribution: Seq[StatisticPoint[_]]) extends AnyVal {
+    def toTable(fieldName: String): String = {
+      val sortedStats = distribution.sortBy {
+        case StatisticPoint(value: Int, _, _) => f"$value%2d"
+        case StatisticPoint(value, _, _)      => value.toString
+      }
+      val costRow        = fieldName +: sortedStats.map(_.value.toString) :+ "TOTAL"
+      val cardinalityRow = "#"       +: sortedStats.map(_.count.toString) :+ distribution.map(_.count).sum
+      val percentageRow  = "%"       +: sortedStats.map(statPoint => f"${statPoint.percentage}%.2f") :+ "100"
+
+      Tabulator.format(Seq(costRow, cardinalityRow, percentageRow))
     }
   }
 }
-
