@@ -1,4 +1,4 @@
-package pt.afsmeira.agotlcg.utils
+package pt.afsmeira.lightbringer.utils
 
 import java.io.PrintWriter
 import java.nio.file.{Files, Paths}

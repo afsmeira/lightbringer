@@ -1,12 +1,12 @@
-package pt.afsmeira.agotlcg
+package pt.afsmeira.lightbringer
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.stream.ActorMaterializer
-import pt.afsmeira.agotlcg.model.{Card, Deck}
-import pt.afsmeira.agotlcg.utils.AGoTProtocol._
-import pt.afsmeira.agotlcg.utils.{ConnectionUtils, FileUtils}
+import pt.afsmeira.lightbringer.model.{Card, Deck}
+import pt.afsmeira.lightbringer.utils.AGoTProtocol._
+import pt.afsmeira.lightbringer.utils.{ConnectionUtils, FileUtils}
 import spray.json._
 
 import scala.concurrent.Await

@@ -1,7 +1,7 @@
-package pt.afsmeira.agotlcg.model
+package pt.afsmeira.lightbringer.model
 
-import pt.afsmeira.agotlcg.model.Deck.{FieldStatistics, StatisticPoint}
-import pt.afsmeira.agotlcg.utils.Tabulator
+import pt.afsmeira.lightbringer.model.Deck.{FieldStatistics, StatisticPoint}
+import pt.afsmeira.lightbringer.utils.Tabulator
 
 import scala.reflect.ClassTag
 import scala.reflect._

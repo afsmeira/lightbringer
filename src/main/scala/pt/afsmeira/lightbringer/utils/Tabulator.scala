@@ -1,4 +1,4 @@
-package pt.afsmeira.agotlcg.utils
+package pt.afsmeira.lightbringer.utils
 
 object Tabulator {
   def format(table: Seq[Seq[Any]]) = table match {

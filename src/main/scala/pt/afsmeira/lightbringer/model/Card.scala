@@ -1,4 +1,4 @@
-package pt.afsmeira.agotlcg.model
+package pt.afsmeira.lightbringer.model
 
 trait Card {
   def name: String

@@ -1,10 +1,10 @@
 #Lightbringer
 
-Lightbringer is a static deck analysis tool for A Game of Thrones LCG 2nd Edition.
+Lightbringer is a deck analysis tool for A Game of Thrones LCG 2nd Edition.
 
 It helps you making the right decisions for your deck by providing insights on several
- statistics such as cost, strength and icon distribution. Furthermore you can assess
- the viability of your deck using Ligthbringer's setup analysis (under implementation).
+statistics such as cost, strength and icon distribution. Furthermore you can assess
+the viability of your deck using Ligthbringer's setup analysis (under implementation).
 
 ## Run it
 Currently, Lightbringer only supports analyzing decks from [thronesdb](http://thronesdb.com).

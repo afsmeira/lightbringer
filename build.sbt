@@ -1,6 +1,6 @@
 scalaVersion := "2.11.8"
 
-name := "agot"
+name := "lightbringer"
 
 libraryDependencies ++= Seq(
 	"com.typesafe.akka" %% "akka-http-experimental"            % "2.4.11",
