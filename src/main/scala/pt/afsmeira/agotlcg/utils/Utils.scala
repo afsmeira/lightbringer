@@ -7,12 +7,12 @@ import java.time.temporal.ChronoUnit
 import javax.net.ssl.{KeyManager, SSLContext, X509TrustManager}
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.model.{HttpRequest, ResponseEntity, Uri}
+import akka.http.scaladsl.model._
 import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
 import akka.http.scaladsl.{Http, HttpsConnectionContext}
 import akka.stream.Materializer
 
-import scala.concurrent.Await
+import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.io.Source
 
@@ -37,28 +37,25 @@ object ConnectionUtils {
     implicit unmarshaller: Unmarshaller[ResponseEntity, T],
     actorSystem: ActorSystem,
     materializer: Materializer
-  ): T = {
+  ): Future[T] = {
     import materializer.executionContext
 
-    Await.result(
-      Http().singleRequest(
-        HttpRequest(uri = uri),
-        WideOpenConnectionContext
-      ).flatMap { response =>
-        Unmarshal(response.entity).to[T]
-      },
-      RequestTimeout
-    )
+    Http().singleRequest(
+      HttpRequest(uri = uri),
+      WideOpenConnectionContext
+    ).flatMap { response =>
+      Unmarshal(response.entity).to[T]
+    }
   }
 }
 
 object FileUtils {
 
-  val CardsFile = ".cards.json"
+  private val CardsFile = ".cards.json"
 
   def validCardsFile: Boolean = {
     val path = Paths.get(CardsFile)
-    val instant = java.time.Instant.now().minus(20, ChronoUnit.DAYS)
+    val instant = java.time.Instant.now.minus(20, ChronoUnit.DAYS)
 
     Files.exists(path) && Files.getLastModifiedTime(path).toInstant.isAfter(instant)
   }
