@@ -11,145 +11,153 @@ trait Card {
 }
 
 trait Cost {
-	def cost: String
-	def printedCost: Int
+  def cost: String
+  def printedCost: Int
 }
 
 trait Allegiance {
-	def faction: Faction
-	def loyalty: Boolean
+  def faction: Faction
+  def loyalty: Boolean
 }
 
-trait Uniqueness {
-	def unique: Boolean
+trait Marshallable {
+  def unique: Boolean
+  def income: Int
+  def limited: Boolean
 }
 
 trait DrawCard extends Card with Cost with Allegiance
 
 case class Character(
-	name: String,
-	traits: Option[Seq[String]],
-	flavourText: Option[String],
-	limit: Int,
+  name: String,
+  traits: Option[Seq[String]],
+  flavourText: Option[String],
+  limit: Int,
   code: String,
   number: Int,
   pack: Pack,
 
-	cost: String,
-	printedCost: Int,
+  cost: String,
+  printedCost: Int,
 
-	faction: Faction,
-	loyalty: Boolean,
+  faction: Faction,
+  loyalty: Boolean,
 
-	unique: Boolean,
+  unique: Boolean,
+  income: Int,
+  limited: Boolean,
 
-	military: Boolean,
-	intrigue: Boolean,
-	power: Boolean,
-	strength: Int
-) extends DrawCard with Uniqueness {
-	override def toString: String = s"Character: $name"
+  military: Boolean,
+  intrigue: Boolean,
+  power: Boolean,
+  strength: Int
+) extends DrawCard with Marshallable {
+  override def toString: String = s"Character: $name"
 }
 
 case class Attachment(
   name: String,
-	traits: Option[Seq[String]],
-	flavourText: Option[String],
-	limit: Int,
+  traits: Option[Seq[String]],
+  flavourText: Option[String],
+  limit: Int,
   code: String,
   number: Int,
   pack: Pack,
 
-	cost: String,
-	printedCost: Int,
+  cost: String,
+  printedCost: Int,
 
-	faction: Faction,
-	loyalty: Boolean,
+  faction: Faction,
+  loyalty: Boolean,
 
-	unique: Boolean
-) extends DrawCard with Uniqueness {
-	override def toString: String = s"Attachment: $name"
+  unique: Boolean,
+  income: Int,
+  limited: Boolean
+) extends DrawCard with Marshallable {
+  override def toString: String = s"Attachment: $name"
 }
 
 case class Location(
-	name: String,
-	traits: Option[Seq[String]],
-	flavourText: Option[String],
-	limit: Int,
+  name: String,
+  traits: Option[Seq[String]],
+  flavourText: Option[String],
+  limit: Int,
   code: String,
   number: Int,
   pack: Pack,
 
-	cost: String,
-	printedCost: Int,
+  cost: String,
+  printedCost: Int,
 
-	faction: Faction,
-	loyalty: Boolean,
+  faction: Faction,
+  loyalty: Boolean,
 
-	unique: Boolean
-) extends DrawCard with Uniqueness {
-	override def toString: String = s"Location: $name"
+  unique: Boolean,
+  income: Int,
+  limited: Boolean
+) extends DrawCard with Marshallable {
+  override def toString: String = s"Location: $name"
 }
 
 case class Event(
-	name: String,
-	traits: Option[Seq[String]],
-	flavourText: Option[String],
-	limit: Int,
+  name: String,
+  traits: Option[Seq[String]],
+  flavourText: Option[String],
+  limit: Int,
   code: String,
   number: Int,
   pack: Pack,
 
-	cost: String,
-	printedCost: Int,
+  cost: String,
+  printedCost: Int,
 
-	faction: Faction,
-	loyalty: Boolean
+  faction: Faction,
+  loyalty: Boolean
 ) extends DrawCard {
-	override def toString: String = s"Event: $name"
+  override def toString: String = s"Event: $name"
 }
 
 case class Plot(
-	name: String,
-	traits: Option[Seq[String]],
-	flavourText: Option[String],
-	limit: Int,
+  name: String,
+  traits: Option[Seq[String]],
+  flavourText: Option[String],
+  limit: Int,
   code: String,
   number: Int,
   pack: Pack,
 
-	faction: Faction,
-	loyalty: Boolean,
+  faction: Faction,
+  loyalty: Boolean,
 
-	income: Int,
-	initiative: Int,
-	claim: String,
-	printedClaim: Int,
-	reserve: Int
+  income: Int,
+  initiative: Int,
+  claim: String,
+  printedClaim: Int,
+  reserve: Int
 ) extends Card with Allegiance {
-	override def toString: String = s"Plot: $name"
+  override def toString: String = s"Plot: $name"
 }
 
 case class Agenda(
-	name: String,
-	traits: Option[Seq[String]],
-	flavourText: Option[String],
-	limit: Int,
+  name: String,
+  traits: Option[Seq[String]],
+  flavourText: Option[String],
+  limit: Int,
   code: String,
   number: Int,
   pack: Pack
 ) extends Card {
-	override def toString: String = s"Agenda: $name"
+  override def toString: String = s"Agenda: $name"
 }
 
 case class Title(
   name: String,
-	traits: Option[Seq[String]],
-	flavourText: Option[String],
-	limit: Int,
-	code: String,
-	number: Int,
-	pack: Pack
+  traits: Option[Seq[String]],
+  flavourText: Option[String],
+  limit: Int,
+  code: String,
+  number: Int,
+  pack: Pack
 ) extends Card {
-	override def toString: String = s"Title: $name"
+  override def toString: String = s"Title: $name"
 }

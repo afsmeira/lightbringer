@@ -9,6 +9,17 @@ object AGoTProtocol extends DefaultJsonProtocol {
   implicit object CardProtocol extends RootJsonFormat[Card] {
     override def read(json: JsValue): Card = {
 
+      val LimitedKeyword: String = "Limited."
+
+      def readIncome(text: Option[String]): Int = {
+        val IncomePattern = """((.|\n|\r)*)((\+|\-)\d) Income((.|\n)*)""".r
+
+        text.map {
+          case IncomePattern(_, _, income, _, _, _) => income.toInt
+          case _ => 0
+        } getOrElse 0
+      }
+
       def readAgenda(json: JsValue) = Agenda(
         fromField[String](json, "name"),
         fromField[Option[String]](json, "traits").map(_.split('.').map(_.trim).toList),
@@ -31,7 +42,9 @@ object AGoTProtocol extends DefaultJsonProtocol {
         fromField[Option[Int]](json, "cost").getOrElse(0),
         fromField[Faction](json, "faction_name"),
         fromField[Boolean](json, "is_loyal"),
-        fromField[Boolean](json, "is_unique")
+        fromField[Boolean](json, "is_unique"),
+        readIncome(fromField[Option[String]](json, "text")),
+        fromField[Option[String]](json, "text").exists(_.contains(LimitedKeyword))
       )
 
       def readCharacter(json: JsValue) = Character(
@@ -47,6 +60,8 @@ object AGoTProtocol extends DefaultJsonProtocol {
         fromField[Faction](json, "faction_name"),
         fromField[Boolean](json, "is_loyal"),
         fromField[Boolean](json, "is_unique"),
+        readIncome(fromField[Option[String]](json, "text")),
+        fromField[Option[String]](json, "text").exists(_.contains(LimitedKeyword)),
         fromField[Boolean](json, "is_military"),
         fromField[Boolean](json, "is_intrigue"),
         fromField[Boolean](json, "is_power"),
@@ -79,7 +94,9 @@ object AGoTProtocol extends DefaultJsonProtocol {
         fromField[Option[Int]](json, "cost").getOrElse(0),
         fromField[Faction](json, "faction_name"),
         fromField[Boolean](json, "is_loyal"),
-        fromField[Boolean](json, "is_unique")
+        fromField[Boolean](json, "is_unique"),
+        readIncome(fromField[Option[String]](json, "text")),
+        fromField[Option[String]](json, "text").exists(_.contains(LimitedKeyword))
       )
 
       def readPlot(json: JsValue) = Plot(
