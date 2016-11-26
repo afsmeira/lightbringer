@@ -2,6 +2,7 @@ package pt.afsmeira.lightbringer.setup
 
 import com.typesafe.config.{Config, ConfigFactory}
 
+// TODO add other settings such as income cards and key cards
 case class Settings(
   setup: SetupSettings,
   mulligan: MulliganSettings
@@ -11,7 +12,6 @@ case class SetupSettings(
   requireTwoCharacters: Boolean,
   requireFourCostCharacter: Boolean,
   requireEconomy: Boolean,
-  preferEconomy: Boolean,
   minCardsRequired: Int
 )
 
@@ -22,7 +22,7 @@ case class MulliganSettings(
 )
 
 object Settings {
-  def fromFile(file: String) = fromConfig(ConfigFactory.parseResources(file))
+  def fromFile(file: String): Settings = fromConfig(ConfigFactory.parseResources(file))
 
   def fromConfig(config: Config): Settings = {
     val setupConfig = config.getConfig("setup")
@@ -30,7 +30,6 @@ object Settings {
       setupConfig.getBoolean("require-two-characters"),
       setupConfig.getBoolean("require-four-cost-character"),
       setupConfig.getBoolean("require-economy"),
-      setupConfig.getBoolean("prefer-economy"),
       setupConfig.getInt("min-cards-required")
     )
 
