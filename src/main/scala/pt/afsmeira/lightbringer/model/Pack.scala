@@ -8,6 +8,7 @@ object Cycle {
   case object Draft          extends Cycle
   case object Westeros       extends Cycle
   case object WarOfFiveKings extends Cycle
+  case object BloodAndGold   extends Cycle
 }
 
 sealed trait Pack {
@@ -81,6 +82,16 @@ object Pack {
     val cycle: Cycle = Cycle.Deluxe
   }
 
+  case object AllMenAreFools extends Pack {
+    val name: String = "All Men Are Fools"
+    val cycle: Cycle = Cycle.BloodAndGold
+  }
+
+  case object WatchersOnTheWall extends Pack {
+    val name: String = "Watchers on the Wall"
+    val cycle: Cycle = Cycle.Deluxe
+  }
+
   case object ValyrianDraftSet extends Pack {
     val name: String = "Valyrian Draft Set"
     val cycle: Cycle = Cycle.Draft
@@ -102,6 +113,8 @@ object Pack {
     GhostsOfHarrenhal,
     TyrionsChain,
     LionsOfCasterlyRock,
+    AllMenAreFools,
+    WatchersOnTheWall,
     ValyrianDraftSet
   )
 }
