@@ -5,6 +5,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.stream.ActorMaterializer
 import pt.afsmeira.lightbringer.model.{Card, Deck}
+import pt.afsmeira.lightbringer.setup.Settings
 import pt.afsmeira.lightbringer.utils.AGoTProtocol._
 import pt.afsmeira.lightbringer.utils.{ConnectionUtils, FileUtils}
 import spray.json._
@@ -18,6 +19,8 @@ object Main extends App {
   implicit val materializer = ActorMaterializer()
   import materializer.executionContext
 
+  private val AnalyzerSettings = Settings.fromFile("lightbringer.conf")
+  implicit val cardProtocol = CardProtocol(AnalyzerSettings.meta)
   val decklistId = args(0)
 
   val cardMapTry = if (FileUtils.validCardsFile) {

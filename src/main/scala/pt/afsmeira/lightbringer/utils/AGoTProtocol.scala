@@ -1,17 +1,22 @@
 package pt.afsmeira.lightbringer.utils
 
 import pt.afsmeira.lightbringer.model._
+import pt.afsmeira.lightbringer.setup.MetaSettings
 import spray.json._
 
 object AGoTProtocol extends DefaultJsonProtocol {
 
   // This object is not just a JSON Reader because the Unmarshal.to() method requires a full JSON format
-  implicit object CardProtocol extends RootJsonFormat[Card] {
+  case class CardProtocol(settings: MetaSettings) extends RootJsonFormat[Card] {
     override def read(json: JsValue): Card = {
 
       val LimitedKeyword: String = "Limited."
 
       def readIncome(text: Option[String]): Int = {
+        /**
+          * This pattern will match a `+` or a `-` followed by a single digit and then the word `Income`.
+          * Before or after this group there can be any number of characters, including line breaks.
+          */
         val IncomePattern = """((.|\n|\r)*)((\+|\-)\d) Income((.|\n)*)""".r
 
         text.map {
@@ -30,43 +35,57 @@ object AGoTProtocol extends DefaultJsonProtocol {
         fromField[Pack](json, "pack_name")
       )
 
-      def readAttachment(json: JsValue) = Attachment(
-        fromField[String](json, "name"),
-        fromField[Option[String]](json, "traits").map(_.split('.').map(_.trim).toList),
-        fromField[Option[String]](json, "flavor"),
-        fromField[Option[Int]](json, "deck_limit").getOrElse(3),
-        fromField[String](json, "code"),
-        fromField[Int](json, "position"),
-        fromField[Pack](json, "pack_name"),
-        fromField[Option[Int]](json, "cost").map(_.toString).getOrElse("X"),
-        fromField[Option[Int]](json, "cost").getOrElse(0),
-        fromField[Faction](json, "faction_name"),
-        fromField[Boolean](json, "is_loyal"),
-        fromField[Boolean](json, "is_unique"),
-        readIncome(fromField[Option[String]](json, "text")),
-        fromField[Option[String]](json, "text").exists(_.contains(LimitedKeyword))
-      )
+      def readAttachment(json: JsValue) = {
+        val name   = fromField[String](json, "name")
+        val code   = fromField[String](json, "code")
+        val income = readIncome(fromField[Option[String]](json, "text"))
 
-      def readCharacter(json: JsValue) = Character(
-        fromField[String](json, "name"),
-        fromField[Option[String]](json, "traits").map(_.split('.').map(_.trim).toList),
-        fromField[Option[String]](json, "flavor"),
-        fromField[Option[Int]](json, "deck_limit").getOrElse(3),
-        fromField[String](json, "code"),
-        fromField[Int](json, "position"),
-        fromField[Pack](json, "pack_name"),
-        fromField[Option[Int]](json, "cost").map(_.toString).getOrElse("X"),
-        fromField[Option[Int]](json, "cost").getOrElse(0),
-        fromField[Faction](json, "faction_name"),
-        fromField[Boolean](json, "is_loyal"),
-        fromField[Boolean](json, "is_unique"),
-        readIncome(fromField[Option[String]](json, "text")),
-        fromField[Option[String]](json, "text").exists(_.contains(LimitedKeyword)),
-        fromField[Boolean](json, "is_military"),
-        fromField[Boolean](json, "is_intrigue"),
-        fromField[Boolean](json, "is_power"),
-        fromField[Int](json, "strength")
-      )
+        Attachment(
+          name,
+          fromField[Option[String]](json, "traits").map(_.split('.').map(_.trim).toList),
+          fromField[Option[String]](json, "flavor"),
+          fromField[Option[Int]](json, "deck_limit").getOrElse(3),
+          code,
+          fromField[Int](json, "position"),
+          fromField[Pack](json, "pack_name"),
+          fromField[Option[Int]](json, "cost").map(_.toString).getOrElse("X"),
+          fromField[Option[Int]](json, "cost").getOrElse(0),
+          fromField[Faction](json, "faction_name"),
+          fromField[Boolean](json, "is_loyal"),
+          fromField[Boolean](json, "is_unique"),
+          fromField[Option[String]](json, "text").exists(_.contains(LimitedKeyword)),
+          income > 0 || settings.economyCards.contains(code) || settings.economyCards.contains(name),
+          income
+        )
+      }
+
+      def readCharacter(json: JsValue) = {
+        val name   = fromField[String](json, "name")
+        val code   = fromField[String](json, "code")
+        val income = readIncome(fromField[Option[String]](json, "text"))
+
+        Character(
+          name,
+          fromField[Option[String]](json, "traits").map(_.split('.').map(_.trim).toList),
+          fromField[Option[String]](json, "flavor"),
+          fromField[Option[Int]](json, "deck_limit").getOrElse(3),
+          code,
+          fromField[Int](json, "position"),
+          fromField[Pack](json, "pack_name"),
+          fromField[Option[Int]](json, "cost").map(_.toString).getOrElse("X"),
+          fromField[Option[Int]](json, "cost").getOrElse(0),
+          fromField[Faction](json, "faction_name"),
+          fromField[Boolean](json, "is_loyal"),
+          fromField[Boolean](json, "is_unique"),
+          fromField[Option[String]](json, "text").exists(_.contains(LimitedKeyword)),
+          income > 0 || settings.economyCards.contains(code) || settings.economyCards.contains(name),
+          income,
+          fromField[Boolean](json, "is_military"),
+          fromField[Boolean](json, "is_intrigue"),
+          fromField[Boolean](json, "is_power"),
+          fromField[Int](json, "strength")
+        )
+      }
 
       def readEvent(json: JsValue) = Event(
         fromField[String](json, "name"),
@@ -82,22 +101,29 @@ object AGoTProtocol extends DefaultJsonProtocol {
         fromField[Boolean](json, "is_loyal")
       )
 
-      def readLocation(json: JsValue) = Location(
-        fromField[String](json, "name"),
-        fromField[Option[String]](json, "traits").map(_.split('.').map(_.trim).toList),
-        fromField[Option[String]](json, "flavor"),
-        fromField[Option[Int]](json, "deck_limit").getOrElse(3),
-        fromField[String](json, "code"),
-        fromField[Int](json, "position"),
-        fromField[Pack](json, "pack_name"),
-        fromField[Option[Int]](json, "cost").map(_.toString).getOrElse("X"),
-        fromField[Option[Int]](json, "cost").getOrElse(0),
-        fromField[Faction](json, "faction_name"),
-        fromField[Boolean](json, "is_loyal"),
-        fromField[Boolean](json, "is_unique"),
-        readIncome(fromField[Option[String]](json, "text")),
-        fromField[Option[String]](json, "text").exists(_.contains(LimitedKeyword))
-      )
+      def readLocation(json: JsValue) = {
+        val name   = fromField[String](json, "name")
+        val code   = fromField[String](json, "code")
+        val income = readIncome(fromField[Option[String]](json, "text"))
+
+        Location(
+          name,
+          fromField[Option[String]](json, "traits").map(_.split('.').map(_.trim).toList),
+          fromField[Option[String]](json, "flavor"),
+          fromField[Option[Int]](json, "deck_limit").getOrElse(3),
+          code,
+          fromField[Int](json, "position"),
+          fromField[Pack](json, "pack_name"),
+          fromField[Option[Int]](json, "cost").map(_.toString).getOrElse("X"),
+          fromField[Option[Int]](json, "cost").getOrElse(0),
+          fromField[Faction](json, "faction_name"),
+          fromField[Boolean](json, "is_loyal"),
+          fromField[Boolean](json, "is_unique"),
+          fromField[Option[String]](json, "text").exists(_.contains(LimitedKeyword)),
+          income > 0 || settings.economyCards.contains(code) || settings.economyCards.contains(name),
+          income
+        )
+      }
 
       def readPlot(json: JsValue) = Plot(
         fromField[String](json, "name"),

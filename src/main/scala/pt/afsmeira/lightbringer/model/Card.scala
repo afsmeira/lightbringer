@@ -22,8 +22,9 @@ trait Allegiance {
 
 trait Marshallable {
   def unique: Boolean
-  def income: Int
   def limited: Boolean
+  def economy: Boolean
+  def income: Int
 }
 
 trait DrawCard extends Card with Cost with Allegiance
@@ -44,8 +45,9 @@ case class Character(
   loyalty: Boolean,
 
   unique: Boolean,
-  income: Int,
   limited: Boolean,
+  economy: Boolean,
+  income: Int,
 
   military: Boolean,
   intrigue: Boolean,
@@ -71,8 +73,9 @@ case class Attachment(
   loyalty: Boolean,
 
   unique: Boolean,
-  income: Int,
-  limited: Boolean
+  limited: Boolean,
+  economy: Boolean,
+  income: Int
 ) extends DrawCard with Marshallable {
   override def toString: String = s"Attachment: $name"
 }
@@ -93,8 +96,9 @@ case class Location(
   loyalty: Boolean,
 
   unique: Boolean,
-  income: Int,
-  limited: Boolean
+  limited: Boolean,
+  economy: Boolean,
+  income: Int
 ) extends DrawCard with Marshallable {
   override def toString: String = s"Location: $name"
 }

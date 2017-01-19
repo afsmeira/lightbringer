@@ -11,7 +11,7 @@ case class Deck(house: Faction, agenda: Option[Agenda], cards: Seq[Card], name: 
   private val plotDeck: Seq[Plot] = cards.collect {
     case card: Plot => card
   }
-  private val drawDeck: Seq[DrawCard] = (cards diff plotDeck) collect {
+  val drawDeck: Seq[DrawCard] = (cards diff plotDeck) collect {
     case drawCard: DrawCard => drawCard
   }
 
