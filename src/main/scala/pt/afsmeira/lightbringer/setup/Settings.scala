@@ -6,8 +6,7 @@ import scala.collection.JavaConverters._
 
 case class Settings(
   meta: MetaSettings,
-  setup: SetupSettings,
-  mulligan: MulliganSettings
+  setup: SetupSettings
 )
 
 case class MetaSettings(
@@ -18,14 +17,10 @@ case class SetupSettings(
   requireTwoCharacters: Boolean,
   requireFourCostCharacter: Boolean,
   requireEconomy: Boolean,
+  requireKeyCard: Boolean,
   minCardsRequired: Int,
-  keyCards: Set[String]
-)
-
-case class MulliganSettings(
-  onPoorSetup: Boolean,
-  onNoKeyCard: Boolean,
-  onNoEconomy: Boolean
+  keyCards: Set[String],
+  avoidableCards: Set[String]
 )
 
 object Settings {
@@ -43,17 +38,12 @@ object Settings {
       setupConfig.getBoolean("require-two-characters"),
       setupConfig.getBoolean("require-four-cost-character"),
       setupConfig.getBoolean("require-economy"),
+      setupConfig.getBoolean("require-key-card"),
       setupConfig.getInt("min-cards-required"),
-      setupConfig.getStringList("key-cards").asScala.toSet
+      setupConfig.getStringList("key-cards").asScala.toSet,
+      setupConfig.getStringList("avoidable-cards").asScala.toSet
     )
 
-    val mulliganConfig = config.getConfig("mulligan")
-    val mulliganSettings = MulliganSettings(
-      mulliganConfig.getBoolean("on-poor-setup"),
-      mulliganConfig.getBoolean("on-no-key-card"),
-      mulliganConfig.getBoolean("on-no-economy")
-    )
-
-    Settings(metaSettings, setupSettings, mulliganSettings)
+    Settings(metaSettings, setupSettings)
   }
 }

@@ -5,7 +5,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.stream.ActorMaterializer
 import pt.afsmeira.lightbringer.model.{Card, Deck}
-import pt.afsmeira.lightbringer.setup.Settings
+import pt.afsmeira.lightbringer.setup.{Settings, SetupAnalyzer}
 import pt.afsmeira.lightbringer.utils.AGoTProtocol._
 import pt.afsmeira.lightbringer.utils.{ConnectionUtils, FileUtils}
 import spray.json._
@@ -47,6 +47,7 @@ object Main extends App {
   }
 
   deckTry.foreach(deck => println(deck.fullReport))
+  deckTry.foreach(deck => println(SetupAnalyzer.analyze(deck).toString))
   deckTry.failed.foreach { e =>
     println(s"Decklist with ID $decklistId was not able to be retrieved. Are you sure it exists?")
   }

@@ -5,26 +5,29 @@ import pt.afsmeira.lightbringer.utils.Tabulator
 
 import scala.reflect.ClassTag
 import scala.reflect._
+import scala.util.Random
 
 case class Deck(house: Faction, agenda: Option[Agenda], cards: Seq[Card], name: Option[String]) {
 
   private val plotDeck: Seq[Plot] = cards.collect {
     case card: Plot => card
   }
-  val drawDeck: Seq[DrawCard] = (cards diff plotDeck) collect {
+  private val drawDeck: Seq[DrawCard] = (cards diff plotDeck) collect {
     case drawCard: DrawCard => drawCard
   }
 
-  private val characters: Seq[Character] = drawDeck.collect {
+  def randomHand(handSize: Int): Seq[DrawCard] = Random.shuffle(drawDeck).take(handSize)
+
+  private val characters = drawDeck.collect {
     case card: Character => card
   }
-  private val events: Seq[Event] = drawDeck.collect {
+  private val events = drawDeck.collect {
     case card: Event => card
   }
-  private val attachments: Seq[Attachment] = drawDeck.collect {
+  private val attachments = drawDeck.collect {
     case card: Attachment => card
   }
-  private val locations: Seq[Location] = drawDeck.collect {
+  private val locations = drawDeck.collect {
     case card: Location => card
   }
 
