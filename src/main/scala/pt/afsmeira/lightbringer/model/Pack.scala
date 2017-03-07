@@ -86,6 +86,14 @@ object Pack {
     val name: String = "All Men Are Fools"
     val cycle: Cycle = Cycle.BloodAndGold
   }
+  case object GuardingTheRealm extends Pack {
+    val name: String = "Guarding the Realm"
+    val cycle: Cycle = Cycle.BloodAndGold
+  }
+  case object TheFallOfAstapor extends Pack {
+    val name: String = "The Fall of Astapor"
+    val cycle: Cycle = Cycle.BloodAndGold
+  }
 
   case object WatchersOnTheWall extends Pack {
     val name: String = "Watchers on the Wall"
@@ -114,6 +122,8 @@ object Pack {
     TyrionsChain,
     LionsOfCasterlyRock,
     AllMenAreFools,
+    GuardingTheRealm,
+    TheFallOfAstapor,
     WatchersOnTheWall,
     ValyrianDraftSet
   )
