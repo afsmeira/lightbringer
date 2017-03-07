@@ -23,7 +23,7 @@ object SetupAnalyzer {
   private def generateSetups(cards: Seq[DrawCard]): Seq[Setup] = {
     // TODO somehow filter out attachments that can't be used for setup
     val validCards = cards.collect {
-      case card : DrawCard with Marshallable => card
+      case card : Setup.ValidCard => card
     }
 
     for {

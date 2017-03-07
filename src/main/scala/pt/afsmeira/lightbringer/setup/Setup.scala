@@ -3,16 +3,18 @@ package pt.afsmeira.lightbringer.setup
 import pt.afsmeira.lightbringer.model.{Character, DrawCard, Marshallable}
 
 object Setup {
-  def deduplicate(cards: Seq[DrawCard with Marshallable]): Seq[DrawCard with Marshallable] =
+  type ValidCard = DrawCard with Marshallable
+
+  def deduplicate(cards: Seq[Setup.ValidCard]): Seq[Setup.ValidCard] =
     cards.groupBy(_.unique).flatMap {
       case (false, nonUniques) => nonUniques
       case (true, uniques)     => uniques.distinct
     }.toSeq
 }
 
-case class Setup(cards: Seq[DrawCard with Marshallable], settings: SetupSettings) extends Ordered[Setup] {
+case class Setup(cards: Seq[Setup.ValidCard], settings: SetupSettings) extends Ordered[Setup] {
 
-  private val deduplicatedCards: Seq[DrawCard with Marshallable] = Setup.deduplicate(cards)
+  private val deduplicatedCards: Seq[Setup.ValidCard] = Setup.deduplicate(cards)
 
   private val goldUsed   = deduplicatedCards.map(_.printedCost).sum + deduplicatedCards.count(_.economy)
   private val hasEconomy = deduplicatedCards.exists(_.economy)
