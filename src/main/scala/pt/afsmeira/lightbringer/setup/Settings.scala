@@ -24,10 +24,13 @@ case class SetupSettings(
 )
 
 object Settings {
-  def fromFile(file: String): Settings = fromConfig(ConfigFactory.parseResources(file))
+  private val Lightbringer: Settings = fromConfig(ConfigFactory.parseResources("lightbringer.conf"))
+
+  val Setup: SetupSettings = Lightbringer.setup
+  val Meta : MetaSettings  = Lightbringer.meta
 
   // TODO: If config key not found, assume defaults
-  def fromConfig(config: Config): Settings = {
+  private def fromConfig(config: Config): Settings = {
     val metaConfig = config.getConfig("meta")
     val metaSettings = MetaSettings(
       metaConfig.getStringList("economy-cards").asScala.toSet

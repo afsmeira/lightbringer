@@ -19,8 +19,7 @@ object Main extends App {
   implicit val materializer = ActorMaterializer()
   import materializer.executionContext
 
-  private val AnalyzerSettings = Settings.fromFile("lightbringer.conf")
-  implicit val cardProtocol = CardProtocol(AnalyzerSettings.meta)
+  implicit val cardProtocol = CardProtocol(Settings.Meta)
   val decklistId = args(0)
 
   val cardMapTry = if (FileUtils.validCardsFile) {

@@ -3,8 +3,6 @@ package pt.afsmeira.lightbringer.setup
 import pt.afsmeira.lightbringer.model.{Character, DrawCard, Marshallable}
 
 object Setup {
-  val settings: SetupSettings = Settings.fromFile("lightbringer.conf").setup
-
   def deduplicate(cards: Seq[DrawCard with Marshallable]): Seq[DrawCard with Marshallable] =
     cards.groupBy(_.unique).flatMap {
       case (false, nonUniques) => nonUniques
@@ -12,7 +10,7 @@ object Setup {
     }.toSeq
 }
 
-case class Setup(cards: Seq[DrawCard with Marshallable]) extends Ordered[Setup] {
+case class Setup(cards: Seq[DrawCard with Marshallable], settings: SetupSettings) extends Ordered[Setup] {
 
   private val deduplicatedCards: Seq[DrawCard with Marshallable] = Setup.deduplicate(cards)
 
@@ -21,10 +19,10 @@ case class Setup(cards: Seq[DrawCard with Marshallable]) extends Ordered[Setup] 
   private val hasLimited = deduplicatedCards.exists(_.limited)
 
   private val keyCardCount = deduplicatedCards.count { card =>
-    Setup.settings.keyCards.contains(card.code) || Setup.settings.keyCards.contains(card.name)
+    settings.keyCards.contains(card.code) || settings.keyCards.contains(card.name)
   }
   private val avoidableCardCount = deduplicatedCards.count { card =>
-    Setup.settings.avoidableCards.contains(card.code) || Setup.settings.avoidableCards.contains(card.name)
+    settings.avoidableCards.contains(card.code) || settings.avoidableCards.contains(card.name)
   }
 
   private val characters = deduplicatedCards.collect {
@@ -36,11 +34,11 @@ case class Setup(cards: Seq[DrawCard with Marshallable]) extends Ordered[Setup] 
   private val totalStrength          = characters.map(_.strength).sum
 
   val isPoor: Boolean =
-    (Setup.settings.requireTwoCharacters     && !hasTwoCharacters) ||
-    (Setup.settings.requireFourCostCharacter && !hasFourCostCharacter) ||
-    (Setup.settings.requireEconomy           && !hasEconomy) ||
-    (Setup.settings.requireKeyCard           && keyCardCount == 0) ||
-    (Setup.settings.minCardsRequired > cards.size)
+    (settings.requireTwoCharacters     && !hasTwoCharacters) ||
+    (settings.requireFourCostCharacter && !hasFourCostCharacter) ||
+    (settings.requireEconomy           && !hasEconomy) ||
+    (settings.requireKeyCard           && keyCardCount == 0) ||
+    (settings.minCardsRequired > cards.size)
 
   override def compare(that: Setup): Int = Seq(
     this.cards.size.compareTo(that.cards.size),

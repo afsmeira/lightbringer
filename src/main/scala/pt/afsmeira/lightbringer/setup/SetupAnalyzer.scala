@@ -30,6 +30,6 @@ object SetupAnalyzer {
       i           <- 1 to validCards.size
       combination <- validCards.combinations(i) if combination.count(_.limited) <= 1
       totalGold    = Setup.deduplicate(combination).map(_.printedCost).sum if totalGold <= SetupGold
-    } yield Setup(combination)
+    } yield Setup(combination, Settings.Setup)
   }
 }

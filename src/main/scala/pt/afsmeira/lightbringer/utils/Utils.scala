@@ -3,6 +3,7 @@ package pt.afsmeira.lightbringer.utils
 import java.io.PrintWriter
 import java.nio.file.{Files, Paths}
 import java.security.cert.X509Certificate
+import java.time.Instant
 import java.time.temporal.ChronoUnit
 import javax.net.ssl.{KeyManager, SSLContext, X509TrustManager}
 
@@ -19,9 +20,9 @@ import scala.io.Source
 object ConnectionUtils {
 
   private object WideOpenX509TrustManager extends X509TrustManager {
-    override def checkClientTrusted(chain: Array[X509Certificate], authType: String) = ()
-    override def checkServerTrusted(chain: Array[X509Certificate], authType: String) = ()
-    override def getAcceptedIssuers = Array[X509Certificate]()
+    override def checkClientTrusted(chain: Array[X509Certificate], authType: String): Unit = ()
+    override def checkServerTrusted(chain: Array[X509Certificate], authType: String): Unit = ()
+    override def getAcceptedIssuers: Array[X509Certificate] = Array[X509Certificate]()
   }
 
   private val WideOpenConnectionContext: HttpsConnectionContext = {
@@ -31,7 +32,7 @@ object ConnectionUtils {
     new HttpsConnectionContext(trustfulSSLContext)
   }
 
-  val RequestTimeout = 1 minute
+  val RequestTimeout: FiniteDuration = 1 minute
 
   def requestCards[T](uri: Uri)(
     implicit unmarshaller: Unmarshaller[ResponseEntity, T],
@@ -55,7 +56,7 @@ object FileUtils {
 
   def validCardsFile: Boolean = {
     val path = Paths.get(CardsFile)
-    val instant = java.time.Instant.now.minus(20, ChronoUnit.DAYS)
+    val instant = Instant.now.minus(20, ChronoUnit.DAYS)
 
     Files.exists(path) && Files.getLastModifiedTime(path).toInstant.isAfter(instant)
   }
