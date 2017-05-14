@@ -8,7 +8,7 @@ object Setup {
   def deduplicate(cards: Seq[Setup.ValidCard]): Seq[Setup.ValidCard] =
     cards.groupBy(_.unique).flatMap {
       case (false, nonUniques) => nonUniques
-      case (true, uniques)     => uniques.distinct
+      case (true,  uniques)    => uniques.distinct
     }.toSeq
 }
 
@@ -24,7 +24,7 @@ case class Setup(cards: Seq[Setup.ValidCard], settings: SetupSettings) extends O
     settings.keyCards.contains(card.code) || settings.keyCards.contains(card.name)
   }
   private val avoidableCardCount = deduplicatedCards.count { card =>
-    settings.avoidableCards.contains(card.code) || settings.avoidableCards.contains(card.name)
+    settings.avoidableCards.contains(card.code) || settings.avoidableCards.contains(card.name) || card.bestow.isDefined
   }
 
   private val characters = deduplicatedCards.collect {
@@ -36,10 +36,10 @@ case class Setup(cards: Seq[Setup.ValidCard], settings: SetupSettings) extends O
   private val totalStrength          = characters.map(_.strength).sum
 
   val isPoor: Boolean =
-    (settings.requireTwoCharacters     && !hasTwoCharacters) ||
+    (settings.requireTwoCharacters     && !hasTwoCharacters)     ||
     (settings.requireFourCostCharacter && !hasFourCostCharacter) ||
-    (settings.requireEconomy           && !hasEconomy) ||
-    (settings.requireKeyCard           && keyCardCount == 0) ||
+    (settings.requireEconomy           && !hasEconomy)           ||
+    (settings.requireKeyCard           && keyCardCount == 0)     ||
     (settings.minCardsRequired > cards.size)
 
   override def compare(that: Setup): Int = Seq(

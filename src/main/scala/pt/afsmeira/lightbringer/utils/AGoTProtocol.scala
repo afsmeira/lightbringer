@@ -12,17 +12,30 @@ object AGoTProtocol extends DefaultJsonProtocol {
 
       val LimitedKeyword: String = "Limited."
 
-      def readIncome(text: Option[String]): Int = {
+      def readIncome(text: Option[String]): Option[Int] = {
         /**
           * This pattern will match a `+` or a `-` followed by a single digit and then the word `Income`.
           * Before or after this group there can be any number of characters, including line breaks.
           */
         val IncomePattern = """((.|\n|\r)*)((\+|\-)\d) Income((.|\n)*)""".r
 
-        text.map {
-          case IncomePattern(_, _, income, _, _, _) => income.toInt
-          case _ => 0
-        } getOrElse 0
+        text.flatMap {
+          case IncomePattern(_, _, income, _, _, _) => Some(income.toInt)
+          case _ => None
+        }
+      }
+
+      def readBestow(text: Option[String]): Option[Int] = {
+        /**
+          * This pattern will the word `Bestow` followed by a number within parenthesis.
+          * Before or after this group there can be any number of characters, including line breaks.
+          */
+        val BestowPattern = """((.|\n|\r)*)Bestow \((\d)\)((.|\n)*)""".r
+
+        text.flatMap {
+          case BestowPattern(_, _, bestow, _, _) => Some(bestow.toInt)
+          case _ => None
+        }
       }
 
       def readAgenda(json: JsValue) = Agenda(
@@ -38,7 +51,8 @@ object AGoTProtocol extends DefaultJsonProtocol {
       def readAttachment(json: JsValue) = {
         val name   = fromField[String](json, "name")
         val code   = fromField[String](json, "code")
-        val income = readIncome(fromField[Option[String]](json, "text"))
+        val text   = fromField[Option[String]](json, "text")
+        val income = readIncome(text)
 
         Attachment(
           name,
@@ -53,16 +67,18 @@ object AGoTProtocol extends DefaultJsonProtocol {
           fromField[Faction](json, "faction_name"),
           fromField[Boolean](json, "is_loyal"),
           fromField[Boolean](json, "is_unique"),
-          fromField[Option[String]](json, "text").exists(_.contains(LimitedKeyword)),
-          income > 0 || settings.economyCards.contains(code) || settings.economyCards.contains(name),
-          income
+          text.exists(_.contains(LimitedKeyword)),
+          income.exists(_ > 0) || settings.economyCards.contains(code) || settings.economyCards.contains(name),
+          income,
+          readBestow(text)
         )
       }
 
       def readCharacter(json: JsValue) = {
         val name   = fromField[String](json, "name")
         val code   = fromField[String](json, "code")
-        val income = readIncome(fromField[Option[String]](json, "text"))
+        val text   = fromField[Option[String]](json, "text")
+        val income = readIncome(text)
 
         Character(
           name,
@@ -77,9 +93,10 @@ object AGoTProtocol extends DefaultJsonProtocol {
           fromField[Faction](json, "faction_name"),
           fromField[Boolean](json, "is_loyal"),
           fromField[Boolean](json, "is_unique"),
-          fromField[Option[String]](json, "text").exists(_.contains(LimitedKeyword)),
-          income > 0 || settings.economyCards.contains(code) || settings.economyCards.contains(name),
+          text.exists(_.contains(LimitedKeyword)),
+          income.exists(_ > 0) || settings.economyCards.contains(code) || settings.economyCards.contains(name),
           income,
+          readBestow(text),
           fromField[Boolean](json, "is_military"),
           fromField[Boolean](json, "is_intrigue"),
           fromField[Boolean](json, "is_power"),
@@ -104,7 +121,8 @@ object AGoTProtocol extends DefaultJsonProtocol {
       def readLocation(json: JsValue) = {
         val name   = fromField[String](json, "name")
         val code   = fromField[String](json, "code")
-        val income = readIncome(fromField[Option[String]](json, "text"))
+        val text   = fromField[Option[String]](json, "text")
+        val income = readIncome(text)
 
         Location(
           name,
@@ -119,9 +137,10 @@ object AGoTProtocol extends DefaultJsonProtocol {
           fromField[Faction](json, "faction_name"),
           fromField[Boolean](json, "is_loyal"),
           fromField[Boolean](json, "is_unique"),
-          fromField[Option[String]](json, "text").exists(_.contains(LimitedKeyword)),
-          income > 0 || settings.economyCards.contains(code) || settings.economyCards.contains(name),
-          income
+          text.exists(_.contains(LimitedKeyword)),
+          income.exists(_ > 0) || settings.economyCards.contains(code) || settings.economyCards.contains(name),
+          income,
+          readBestow(text)
         )
       }
 
