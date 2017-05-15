@@ -10,7 +10,8 @@ object AGoTProtocol extends DefaultJsonProtocol {
   case class CardProtocol(settings: MetaSettings) extends RootJsonFormat[Card] {
     override def read(json: JsValue): Card = {
 
-      val LimitedKeyword: String = "Limited."
+      val LimitedKeyword : String = "Limited."
+      val TerminalKeyword: String = "Terminal."
 
       def readIncome(text: Option[String]): Option[Int] = {
         /**
@@ -38,9 +39,30 @@ object AGoTProtocol extends DefaultJsonProtocol {
         }
       }
 
+      def readAttachmentRestrictions(text: Option[String]): Attachment.Restrictions = {
+        /**
+          * This pattern will match any number of letters between tags `<i>` and `</i>`.
+          */
+        val traitsPattern = """<i>([A-z]*)<\/i>""".r
+        val firstLine = text.flatMap(_.split("\n").headOption)
+
+        val terminal = firstLine.exists(_.contains(TerminalKeyword))
+        val unique   = firstLine.exists(_.toLowerCase.contains("unique"))
+        val opponent = firstLine.exists(_.toLowerCase.contains("opponent"))
+        val faction  = firstLine.flatMap { line =>
+          Faction.values.find(_.keyword.exists(line.contains))
+        }
+        val traits = for {
+          line       <- firstLine.toSeq
+          matchBlock <- traitsPattern.findAllMatchIn(line)
+        } yield matchBlock.group(1)
+
+        Attachment.Restrictions(terminal, unique, opponent, faction, traits)
+      }
+
       def readAgenda(json: JsValue) = Agenda(
         fromField[String](json, "name"),
-        fromField[Option[String]](json, "traits").map(_.split('.').map(_.trim).toList),
+        fromField[String](json, "traits").split('.').map(_.trim).filter(!_.isEmpty),
         fromField[Option[String]](json, "flavor"),
         fromField[Option[Int]](json, "deck_limit").getOrElse(3),
         fromField[String](json, "code"),
@@ -56,7 +78,7 @@ object AGoTProtocol extends DefaultJsonProtocol {
 
         Attachment(
           name,
-          fromField[Option[String]](json, "traits").map(_.split('.').map(_.trim).toList),
+          fromField[String](json, "traits").split('.').map(_.trim).filter(!_.isEmpty),
           fromField[Option[String]](json, "flavor"),
           fromField[Option[Int]](json, "deck_limit").getOrElse(3),
           code,
@@ -70,7 +92,8 @@ object AGoTProtocol extends DefaultJsonProtocol {
           text.exists(_.contains(LimitedKeyword)),
           income.exists(_ > 0) || settings.economyCards.contains(code) || settings.economyCards.contains(name),
           income,
-          readBestow(text)
+          readBestow(text),
+          readAttachmentRestrictions(text)
         )
       }
 
@@ -82,7 +105,7 @@ object AGoTProtocol extends DefaultJsonProtocol {
 
         Character(
           name,
-          fromField[Option[String]](json, "traits").map(_.split('.').map(_.trim).toList),
+          fromField[String](json, "traits").split('.').map(_.trim).filter(!_.isEmpty),
           fromField[Option[String]](json, "flavor"),
           fromField[Option[Int]](json, "deck_limit").getOrElse(3),
           code,
@@ -106,7 +129,7 @@ object AGoTProtocol extends DefaultJsonProtocol {
 
       def readEvent(json: JsValue) = Event(
         fromField[String](json, "name"),
-        fromField[Option[String]](json, "traits").map(_.split('.').map(_.trim).toList),
+        fromField[String](json, "traits").split('.').map(_.trim).filter(!_.isEmpty),
         fromField[Option[String]](json, "flavor"),
         fromField[Option[Int]](json, "deck_limit").getOrElse(3),
         fromField[String](json, "code"),
@@ -126,7 +149,7 @@ object AGoTProtocol extends DefaultJsonProtocol {
 
         Location(
           name,
-          fromField[Option[String]](json, "traits").map(_.split('.').map(_.trim).toList),
+          fromField[String](json, "traits").split('.').map(_.trim).filter(!_.isEmpty),
           fromField[Option[String]](json, "flavor"),
           fromField[Option[Int]](json, "deck_limit").getOrElse(3),
           code,
@@ -146,7 +169,7 @@ object AGoTProtocol extends DefaultJsonProtocol {
 
       def readPlot(json: JsValue) = Plot(
         fromField[String](json, "name"),
-        fromField[Option[String]](json, "traits").map(_.split('.').map(_.trim).toList),
+        fromField[String](json, "traits").split('.').map(_.trim).filter(!_.isEmpty),
         fromField[Option[String]](json, "flavor"),
         fromField[Option[Int]](json, "deck_limit").getOrElse(3),
         fromField[String](json, "code"),
@@ -163,7 +186,7 @@ object AGoTProtocol extends DefaultJsonProtocol {
 
       def readTitle(json: JsValue) = Title(
         fromField[String](json, "name"),
-        fromField[Option[String]](json, "traits").map(_.split('.').map(_.trim).toList),
+        fromField[String](json, "traits").split('.').map(_.trim).filter(!_.isEmpty),
         fromField[Option[String]](json, "flavor"),
         fromField[Option[Int]](json, "deck_limit").getOrElse(3),
         fromField[String](json, "code"),
@@ -186,8 +209,6 @@ object AGoTProtocol extends DefaultJsonProtocol {
   }
 
   case class DeckProtocol(cardMap: Map[String, Card]) extends RootJsonFormat[Deck] {
-    override def write(obj: Deck): JsValue = JsObject.empty
-
     override def read(json: JsValue): Deck = {
       val faction = fromField[Faction](json, "faction_name")
       val agenda  = fromField[Option[String]](json, "agenda_code").map(cardMap(_).asInstanceOf[Agenda])
@@ -198,6 +219,8 @@ object AGoTProtocol extends DefaultJsonProtocol {
 
       Deck(faction, agenda, cards, name)
     }
+
+    override def write(obj: Deck): JsValue = JsObject.empty
   }
 
   implicit val cardTypeReader: JsonReader[CardType] = JsonReader.func2Reader[CardType] { json =>

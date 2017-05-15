@@ -1,4 +1,4 @@
-#Lightbringer
+# Lightbringer
 
 Lightbringer is a deck analysis tool for A Game of Thrones LCG 2nd Edition.
 

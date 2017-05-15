@@ -2,7 +2,7 @@ package pt.afsmeira.lightbringer.model
 
 trait Card {
   def name: String
-  def traits: Option[Seq[String]]
+  def traits: Seq[String]
   def flavourText: Option[String]
   def limit: Int
   def code: String
@@ -28,11 +28,15 @@ trait Marshallable {
   def bestow: Option[Int]
 }
 
+trait AttachmentEligibility {
+  def eligible(attachment: Attachment): Boolean
+}
+
 trait DrawCard extends Card with Cost with Allegiance
 
 case class Character(
   name: String,
-  traits: Option[Seq[String]],
+  traits: Seq[String],
   flavourText: Option[String],
   limit: Int,
   code: String,
@@ -55,13 +59,18 @@ case class Character(
   intrigue: Boolean,
   power: Boolean,
   strength: Int
-) extends DrawCard with Marshallable {
+) extends DrawCard with Marshallable with AttachmentEligibility {
   override def toString: String = s"Character: $name"
+
+  def eligible(attachment: Attachment): Boolean =
+    (attachment.restrictions.unique && unique) &&
+    attachment.restrictions.faction.forall(_ == faction) &&
+    (attachment.restrictions.traits.isEmpty || attachment.restrictions.traits.exists(traits.contains))
 }
 
 case class Attachment(
   name: String,
-  traits: Option[Seq[String]],
+  traits: Seq[String],
   flavourText: Option[String],
   limit: Int,
   code: String,
@@ -78,14 +87,26 @@ case class Attachment(
   limited: Boolean,
   economy: Boolean,
   income: Option[Int],
-  bestow: Option[Int]
+  bestow: Option[Int],
+
+  restrictions: Attachment.Restrictions
 ) extends DrawCard with Marshallable {
   override def toString: String = s"Attachment: $name"
 }
 
+object Attachment {
+  case class Restrictions(
+    terminal: Boolean,
+    unique: Boolean,
+    opponent: Boolean,
+    faction: Option[Faction],
+    traits: Seq[String]
+  )
+}
+
 case class Location(
   name: String,
-  traits: Option[Seq[String]],
+  traits: Seq[String],
   flavourText: Option[String],
   limit: Int,
   code: String,
@@ -109,7 +130,7 @@ case class Location(
 
 case class Event(
   name: String,
-  traits: Option[Seq[String]],
+  traits: Seq[String],
   flavourText: Option[String],
   limit: Int,
   code: String,
@@ -127,7 +148,7 @@ case class Event(
 
 case class Plot(
   name: String,
-  traits: Option[Seq[String]],
+  traits: Seq[String],
   flavourText: Option[String],
   limit: Int,
   code: String,
@@ -148,7 +169,7 @@ case class Plot(
 
 case class Agenda(
   name: String,
-  traits: Option[Seq[String]],
+  traits: Seq[String],
   flavourText: Option[String],
   limit: Int,
   code: String,
@@ -160,7 +181,7 @@ case class Agenda(
 
 case class Title(
   name: String,
-  traits: Option[Seq[String]],
+  traits: Seq[String],
   flavourText: Option[String],
   limit: Int,
   code: String,

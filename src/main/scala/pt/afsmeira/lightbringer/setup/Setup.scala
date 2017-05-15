@@ -51,4 +51,7 @@ case class Setup(cards: Seq[Setup.ValidCard], settings: SetupSettings) extends O
     this.distinctCharacterCount.compareTo(that.distinctCharacterCount),
     this.totalStrength.compareTo(that.totalStrength)
   ).find(_ != 0).getOrElse(0)
+
+  // TODO implement a better toString
+  override def toString: String = cards.toString
 }

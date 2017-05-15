@@ -10,7 +10,8 @@ case class Settings(
 )
 
 case class MetaSettings(
-  economyCards: Set[String]
+  economyCards: Set[String],
+  setupRuns: Int
 )
 
 case class SetupSettings(
@@ -33,7 +34,8 @@ object Settings {
   private def fromConfig(config: Config): Settings = {
     val metaConfig = config.getConfig("meta")
     val metaSettings = MetaSettings(
-      metaConfig.getStringList("economy-cards").asScala.toSet
+      metaConfig.getStringList("economy-cards").asScala.toSet,
+      metaConfig.getInt("setup-runs")
     )
 
     val setupConfig = config.getConfig("setup")
