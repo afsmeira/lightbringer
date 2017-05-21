@@ -43,13 +43,25 @@ case class Deck(house: Faction, agenda: Option[Agenda], cards: Seq[Card], name: 
   ).filterNot(_.isEmpty).mkString("\n")
 
   private val iconStats: Seq[StatisticPoint[String]] = Seq(
-    StatisticPoint("Military", characters.count(_.military), characters.size),
-    StatisticPoint("Intrigue", characters.count(_.intrigue), characters.size),
-    StatisticPoint("Power",    characters.count(_.power),    characters.size)
+    StatisticPoint(
+      "Military",
+      characters.count(_.military),
+      100 * characters.count(_.military).toDouble / characters.size.toDouble
+    ),
+    StatisticPoint(
+      "Intrigue",
+      characters.count(_.intrigue),
+      100 * characters.count(_.intrigue).toDouble / characters.size.toDouble
+    ),
+    StatisticPoint(
+      "Power",
+      characters.count(_.power),
+      100 * characters.count(_.power).toDouble / characters.size.toDouble
+    )
   )
   private val factionStats = drawDeck.groupBy(_.faction).map { case (faction, factionCards) =>
     val totalFactionCards = factionCards.size
-    val factionPercentage = totalFactionCards.toDouble / drawDeck.size.toDouble
+    val factionPercentage = 100 * totalFactionCards.toDouble / drawDeck.size.toDouble
 
     StatisticPoint[String](faction.name, totalFactionCards, factionPercentage)
   }.toSeq
@@ -78,7 +90,7 @@ case class Deck(house: Faction, agenda: Option[Agenda], cards: Seq[Card], name: 
   def fullReport: String = Seq(
     overview,
     factionStats.toTable("Faction"),
-    iconStats.toTable("Icon"),
+    iconStats.toTable("Icon", percentageRowName = "% of characters", sumsTo100 = false),
     strengthStats.toTable,
     characterCostStats.toTable,
     attachmentCostStats.toTable,
@@ -118,14 +130,20 @@ object Deck {
   case class StatisticPoint[T](value: T, count: Int, percentage: Double)
 
   implicit class ConvertToTable(val distribution: Seq[StatisticPoint[_]]) extends AnyVal {
-    def toTable(fieldName: String): String = {
+    def toTable(
+      fieldName: String,
+      cardinalityRowName: String = "#",
+      percentageRowName : String = "%",
+      sumsTo100: Boolean = true
+    ): String = {
       val sortedStats = distribution.sortBy {
         case StatisticPoint(value: Int, _, _) => f"$value%2d"
         case StatisticPoint(value, _, _)      => value.toString
       }
-      val costRow        = fieldName +: sortedStats.map(_.value.toString) :+ "TOTAL"
-      val cardinalityRow = "#"       +: sortedStats.map(_.count.toString) :+ distribution.map(_.count).sum
-      val percentageRow  = "%"       +: sortedStats.map(statPoint => f"${statPoint.percentage}%.2f") :+ "100"
+      val costRow        = fieldName          +: sortedStats.map(_.value.toString) :+ "TOTAL"
+      val cardinalityRow = cardinalityRowName +: sortedStats.map(_.count.toString) :+ distribution.map(_.count).sum
+      val percentageRow  = percentageRowName  +: sortedStats.map(statPoint => f"${statPoint.percentage}%.2f") :+
+        (if (sumsTo100) "100" else "N/A")
 
       Tabulator.format(Seq(costRow, cardinalityRow, percentageRow))
     }
