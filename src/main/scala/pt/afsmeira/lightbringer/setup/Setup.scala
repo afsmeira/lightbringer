@@ -12,11 +12,11 @@ object Setup {
     }.toSeq
 }
 
-case class Setup(cards: Seq[Setup.ValidCard], settings: SetupSettings) extends Ordered[Setup] {
+case class Setup(cards: Seq[Setup.ValidCard], mulligan: Boolean, settings: SetupSettings) extends Ordered[Setup] {
 
   private val deduplicatedCards: Seq[Setup.ValidCard] = Setup.deduplicate(cards)
 
-  private val goldUsed   = deduplicatedCards.map(_.printedCost).sum + deduplicatedCards.count(_.economy)
+  private val goldUsed   = deduplicatedCards.map(_.cost).sum + deduplicatedCards.count(_.economy)
   private val hasEconomy = deduplicatedCards.exists(_.economy)
   private val hasLimited = deduplicatedCards.exists(_.limited)
 
@@ -31,7 +31,7 @@ case class Setup(cards: Seq[Setup.ValidCard], settings: SetupSettings) extends O
     case card: Character => card
   }
   private val hasTwoCharacters       = characters.size >= 2
-  private val hasFourCostCharacter   = characters.exists(_.printedCost >= 4)
+  private val hasFourCostCharacter   = characters.exists(_.cost >= 4)
   private val distinctCharacterCount = characters.size
   private val totalStrength          = characters.map(_.strength).sum
 

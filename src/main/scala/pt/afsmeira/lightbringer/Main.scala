@@ -46,7 +46,6 @@ object Main extends App {
   }
 
   deckTry.foreach(deck => println(deck.fullReport))
-  deckTry.foreach(deck => println(SetupAnalyzer.analyze(deck).toString))
   deckTry.failed.foreach { e =>
     println(s"Decklist with ID $decklistId was not able to be retrieved. Are you sure it exists?")
   }

@@ -102,6 +102,10 @@ object Pack {
     val name: String = "Oberyn's Revenge"
     val cycle: Cycle = Cycle.BloodAndGold
   }
+  case object TheBrotherhoodWithoutBanners extends Pack {
+    val name: String = "The Brotherhood Without Banners"
+    val cycle: Cycle = Cycle.BloodAndGold
+  }
 
   case object WatchersOnTheWall extends Pack {
     val name: String = "Watchers on the Wall"
@@ -134,6 +138,7 @@ object Pack {
     TheFallOfAstapor,
     TheRedWedding,
     OberynsRevenge,
+    TheBrotherhoodWithoutBanners,
     WatchersOnTheWall,
     ValyrianDraftSet
   )

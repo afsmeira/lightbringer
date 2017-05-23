@@ -9,12 +9,12 @@ object SetupAnalyzer {
   def analyze(deck: Deck): String = {
     (1 to Settings.Meta.setupRuns).map { _ =>
       val startingHand = deck.randomHand(HandSize)
-      val setups = generateSetups(startingHand)
+      val setups = generateSetups(startingHand, mulligan = false)
 
       // Mulligan if all setups are poor
       val (finalHand, bestSetup) = if (setups.forall(_.isPoor)) {
         val mulliganHand = deck.randomHand(HandSize)
-        (mulliganHand, generateSetups(mulliganHand).max)
+        (mulliganHand, generateSetups(mulliganHand, mulligan = true).max)
       } else {
         (startingHand, setups.max)
       }
@@ -24,14 +24,14 @@ object SetupAnalyzer {
     }.mkString("\n")
   }
 
-  private def generateSetups(hand: Seq[DrawCard]): Seq[Setup] = {
+  private def generateSetups(hand: Seq[DrawCard], mulligan: Boolean): Seq[Setup] = {
     val validCards = filterInvalidCards(hand)
 
     for {
       i           <- 1 to validCards.size
       combination <- validCards.combinations(i) if combination.count(_.limited) <= 1
-      totalGold    = Setup.deduplicate(combination).map(_.printedCost).sum if totalGold <= SetupGold
-    } yield Setup(combination, Settings.Setup)
+      totalGold    = Setup.deduplicate(combination).map(_.cost).sum if totalGold <= SetupGold
+    } yield Setup(combination, mulligan, Settings.Setup)
   }
 
   private def filterInvalidCards(hand: Seq[DrawCard]): Seq[Setup.ValidCard] = {

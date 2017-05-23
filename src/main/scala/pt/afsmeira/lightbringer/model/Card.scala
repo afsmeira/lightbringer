@@ -11,8 +11,8 @@ trait Card {
 }
 
 trait Cost {
-  def cost: String
-  def printedCost: Int
+  def printedCost: String
+  def cost: Int
 }
 
 trait Allegiance {
@@ -43,8 +43,8 @@ case class Character(
   number: Int,
   pack: Pack,
 
-  cost: String,
-  printedCost: Int,
+  printedCost: String,
+  cost: Int,
 
   faction: Faction,
   loyalty: Boolean,
@@ -77,8 +77,8 @@ case class Attachment(
   number: Int,
   pack: Pack,
 
-  cost: String,
-  printedCost: Int,
+  printedCost: String,
+  cost: Int,
 
   faction: Faction,
   loyalty: Boolean,
@@ -113,8 +113,8 @@ case class Location(
   number: Int,
   pack: Pack,
 
-  cost: String,
-  printedCost: Int,
+  printedCost: String,
+  cost: Int,
 
   faction: Faction,
   loyalty: Boolean,
@@ -137,8 +137,8 @@ case class Event(
   number: Int,
   pack: Pack,
 
-  cost: String,
-  printedCost: Int,
+  printedCost: String,
+  cost: Int,
 
   faction: Faction,
   loyalty: Boolean
@@ -158,6 +158,7 @@ case class Plot(
   faction: Faction,
   loyalty: Boolean,
 
+  printedIncome: String,
   income: Int,
   initiative: Int,
   claim: String,
