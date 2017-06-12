@@ -71,10 +71,11 @@ object AGoTProtocol extends DefaultJsonProtocol {
       )
 
       def readAttachment(json: JsValue) = {
-        val name   = fromField[String](json, "name")
-        val code   = fromField[String](json, "code")
-        val text   = fromField[Option[String]](json, "text")
-        val income = readIncome(text)
+        val name    = fromField[String](json, "name")
+        val code    = fromField[String](json, "code")
+        val text    = fromField[Option[String]](json, "text")
+        val limited = text.exists(_.contains(LimitedKeyword))
+        val income  = readIncome(text)
 
         Attachment(
           name,
@@ -90,7 +91,8 @@ object AGoTProtocol extends DefaultJsonProtocol {
           fromField[Boolean](json, "is_loyal"),
           fromField[Boolean](json, "is_unique"),
           text.exists(_.contains(LimitedKeyword)),
-          income.exists(_ > 0) || settings.economyCards.contains(code) || settings.economyCards.contains(name),
+          // Until proof otherwise, all limited cards are considered to provide income
+          income.exists(_ > 0) || limited || settings.economyCards.contains(code) || settings.economyCards.contains(name),
           income,
           readBestow(text),
           readAttachmentRestrictions(text)
@@ -98,10 +100,11 @@ object AGoTProtocol extends DefaultJsonProtocol {
       }
 
       def readCharacter(json: JsValue) = {
-        val name   = fromField[String](json, "name")
-        val code   = fromField[String](json, "code")
-        val text   = fromField[Option[String]](json, "text")
-        val income = readIncome(text)
+        val name    = fromField[String](json, "name")
+        val code    = fromField[String](json, "code")
+        val text    = fromField[Option[String]](json, "text")
+        val limited = text.exists(_.contains(LimitedKeyword))
+        val income  = readIncome(text)
 
         Character(
           name,
@@ -117,7 +120,8 @@ object AGoTProtocol extends DefaultJsonProtocol {
           fromField[Boolean](json, "is_loyal"),
           fromField[Boolean](json, "is_unique"),
           text.exists(_.contains(LimitedKeyword)),
-          income.exists(_ > 0) || settings.economyCards.contains(code) || settings.economyCards.contains(name),
+          // Until proof otherwise, all limited cards are considered to provide income
+          income.exists(_ > 0) || limited || settings.economyCards.contains(code) || settings.economyCards.contains(name),
           income,
           readBestow(text),
           fromField[Boolean](json, "is_military"),
@@ -142,10 +146,11 @@ object AGoTProtocol extends DefaultJsonProtocol {
       )
 
       def readLocation(json: JsValue) = {
-        val name   = fromField[String](json, "name")
-        val code   = fromField[String](json, "code")
-        val text   = fromField[Option[String]](json, "text")
-        val income = readIncome(text)
+        val name    = fromField[String](json, "name")
+        val code    = fromField[String](json, "code")
+        val text    = fromField[Option[String]](json, "text")
+        val limited = text.exists(_.contains(LimitedKeyword))
+        val income  = readIncome(text)
 
         Location(
           name,
@@ -161,7 +166,8 @@ object AGoTProtocol extends DefaultJsonProtocol {
           fromField[Boolean](json, "is_loyal"),
           fromField[Boolean](json, "is_unique"),
           text.exists(_.contains(LimitedKeyword)),
-          income.exists(_ > 0) || settings.economyCards.contains(code) || settings.economyCards.contains(name),
+          // Until proof otherwise, all limited cards are considered to provide income
+          income.exists(_ > 0) || limited || settings.economyCards.contains(code) || settings.economyCards.contains(name),
           income,
           readBestow(text)
         )

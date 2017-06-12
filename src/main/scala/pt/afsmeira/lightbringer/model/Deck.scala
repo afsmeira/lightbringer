@@ -1,7 +1,9 @@
 package pt.afsmeira.lightbringer.model
 
-import pt.afsmeira.lightbringer.utils.{FieldStatistics, StatisticPoint}
-import pt.afsmeira.lightbringer.utils.RichStatistics.RichStatisticPoints
+import pt.afsmeira.lightbringer.model.RichCards.{RichDrawCards, RichMarshallableDrawCards}
+import pt.afsmeira.lightbringer.setup.{SetupAnalyzer, SetupStatistics}
+import pt.afsmeira.lightbringer.utils.{FieldStatistics, PercentageStatisticPoint}
+import pt.afsmeira.lightbringer.utils.RichStatistics.{RichFieldStatistics, RichPercentageStatisticPoints}
 
 import scala.reflect.ClassTag
 import scala.reflect._
@@ -9,25 +11,27 @@ import scala.util.Random
 
 case class Deck(house: Faction, agenda: Option[Agenda], cards: Seq[Card], name: Option[String]) {
 
-  private val plotDeck: Seq[Plot] = cards.collect {
+  val plotDeck: Seq[Plot] = cards.collect {
     case card: Plot => card
   }
-  private val drawDeck: Seq[DrawCard] = (cards diff plotDeck) collect {
+  val drawDeck: Seq[DrawCard] = (cards diff plotDeck) collect {
     case drawCard: DrawCard => drawCard
   }
 
   def randomHand(handSize: Int): Seq[DrawCard] = Random.shuffle(drawDeck).take(handSize)
 
-  private val characters = drawDeck.collect {
+  val characters: Seq[Character] = drawDeck.collect {
     case card: Character => card
   }
-  private val events = drawDeck.collect {
+  val deduplicatedCharacters: Seq[Character] = characters.deduplicate
+
+  val events: Seq[Event] = drawDeck.collect {
     case card: Event => card
   }
-  private val attachments = drawDeck.collect {
+  val attachments: Seq[Attachment] = drawDeck.collect {
     case card: Attachment => card
   }
-  private val locations = drawDeck.collect {
+  val locations: Seq[Location] = drawDeck.collect {
     case card: Location => card
   }
 
@@ -42,42 +46,43 @@ case class Deck(house: Faction, agenda: Option[Agenda], cards: Seq[Card], name: 
     listing(events)
   ).filterNot(_.isEmpty).mkString("\n")
 
-  private val iconStats: Seq[StatisticPoint[String]] = Seq(
-    StatisticPoint(
+  val iconStats: Seq[PercentageStatisticPoint[String]] = Seq(
+    PercentageStatisticPoint(
       "Military",
-      characters.count(_.military),
-      100 * characters.count(_.military).toDouble / characters.size.toDouble
+      deduplicatedCharacters.count(_.military),
+      100 * deduplicatedCharacters.count(_.military).toDouble / deduplicatedCharacters.size.toDouble
     ),
-    StatisticPoint(
+    PercentageStatisticPoint(
       "Intrigue",
-      characters.count(_.intrigue),
-      100 * characters.count(_.intrigue).toDouble / characters.size.toDouble
+      deduplicatedCharacters.count(_.intrigue),
+      100 * deduplicatedCharacters.count(_.intrigue).toDouble / deduplicatedCharacters.size.toDouble
     ),
-    StatisticPoint(
+    PercentageStatisticPoint(
       "Power",
-      characters.count(_.power),
-      100 * characters.count(_.power).toDouble / characters.size.toDouble
+      deduplicatedCharacters.count(_.power),
+      100 * deduplicatedCharacters.count(_.power).toDouble / deduplicatedCharacters.size.toDouble
     )
   )
 
-  private val factionStats = drawDeck.groupBy(_.faction).map { case (faction, factionCards) =>
-    val totalFactionCards = factionCards.size
-    val factionPercentage = 100 * totalFactionCards.toDouble / drawDeck.size.toDouble
+  val factionStats: Seq[PercentageStatisticPoint[_]] =
+    drawDeck.groupBy(_.faction).map { case (faction, factionCards) =>
+      val totalFactionCards = factionCards.size
+      val factionPercentage = 100 * totalFactionCards.toDouble / drawDeck.size.toDouble
 
-    StatisticPoint[String](faction.name, totalFactionCards, factionPercentage)
-  }.toSeq
+      PercentageStatisticPoint[String](faction.name, totalFactionCards, factionPercentage)
+    }.toSeq
 
-  private val strengthStats       = FieldStatistics[Character] (characters,  _.strength,    "Strength")
-  private val characterCostStats  = FieldStatistics[Character] (characters,  _.cost, "Character Cost")
-  private val eventCostStats      = FieldStatistics[Event]     (events,      _.cost, "Event Cost")
-  private val attachmentCostStats = FieldStatistics[Attachment](attachments, _.cost, "Attachment Cost")
-  private val locationCostStats   = FieldStatistics[Location]  (locations,   _.cost, "Location Cost")
-  private val totalCostStats      = FieldStatistics[DrawCard]  (drawDeck,    _.cost, "Total Cost")
+  val strengthStats       = FieldStatistics[Character] (deduplicatedCharacters,  _.strength, "Strength")
+  val characterCostStats  = FieldStatistics[Character] (characters.filterCostX,  _.cost,     "Character Cost")
+  val eventCostStats      = FieldStatistics[Event]     (events.filterCostX,      _.cost,     "Event Cost")
+  val attachmentCostStats = FieldStatistics[Attachment](attachments.filterCostX, _.cost,     "Attachment Cost")
+  val locationCostStats   = FieldStatistics[Location]  (locations.filterCostX,   _.cost,     "Location Cost")
+  val totalCostStats      = FieldStatistics[DrawCard]  (drawDeck.filterCostX,    _.cost,     "Total Cost")
 
-  private val incomeStats     = FieldStatistics[Plot](plotDeck, _.income,       "Income")
-  private val initiativeStats = FieldStatistics[Plot](plotDeck, _.initiative,   "Initiative")
-  private val claimStats      = FieldStatistics[Plot](plotDeck, _.printedClaim, "Claim")
-  private val reserveStats    = FieldStatistics[Plot](plotDeck, _.reserve,      "Reserve")
+  val incomeStats     = FieldStatistics[Plot](plotDeck.filter(_.printedIncome != "X"), _.income, "Income")
+  val initiativeStats = FieldStatistics[Plot](plotDeck, _.initiative,   "Initiative")
+  val claimStats      = FieldStatistics[Plot](plotDeck, _.printedClaim, "Claim")
+  val reserveStats    = FieldStatistics[Plot](plotDeck, _.reserve,      "Reserve")
 
 
   private def listing[C <: Card : ClassTag](cards: Seq[C]): String = {
@@ -88,19 +93,28 @@ case class Deck(house: Faction, agenda: Option[Agenda], cards: Seq[Card], name: 
     if (listing.isEmpty) "" else (title +: listing).mkString("", "\n", "\n")
   }
 
-  def fullReport: String = Seq(
-    overview,
-    factionStats.toTable("Faction"),
-    iconStats.toTable("Icon", percentageRowName = "% of characters", sumsTo100 = false),
-    strengthStats.toTable,
-    characterCostStats.toTable,
-    attachmentCostStats.toTable,
-    locationCostStats.toTable,
-    eventCostStats.toTable,
-    totalCostStats.toTable,
-    incomeStats.toTable,
-    initiativeStats.toTable,
-    claimStats.toTable,
-    reserveStats.toTable
-  ).filterNot(_.isEmpty).mkString("\n\n")
+  val setupStats: SetupStatistics = SetupStatistics(SetupAnalyzer.analyze(this))
+
+  def fullReport(setupCardsReport: Boolean): String = {
+    val duplicatesTitle = "# (Duplicates not counted)"
+    val costTitle = "# (Cost X not counted)"
+
+    Seq(
+      overview,
+      "\nDECK STATISTICS",
+      factionStats.toTable("Faction"),
+      iconStats.toTable("Icon", duplicatesTitle, percentageRowTitle = "% of characters", sumsTo100 = false),
+      strengthStats.toTable(duplicatesTitle),
+      characterCostStats.toTable(costTitle),
+      attachmentCostStats.toTable(costTitle),
+      locationCostStats.toTable(costTitle),
+      eventCostStats.toTable(costTitle),
+      totalCostStats.toTable(costTitle),
+      incomeStats.toTable(costTitle),
+      initiativeStats.toTable(),
+      claimStats.toTable(),
+      reserveStats.toTable(),
+      setupStats.fullReport(setupCardsReport)
+    ).filterNot(_.isEmpty).mkString("\n", "\n\n", "\n")
+  }
 }

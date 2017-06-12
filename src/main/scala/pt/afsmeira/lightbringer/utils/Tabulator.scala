@@ -1,7 +1,7 @@
 package pt.afsmeira.lightbringer.utils
 
 object Tabulator {
-  def format(table: Seq[Seq[Any]]) = table match {
+  def format(table: Seq[Seq[Any]]): String = table match {
     case Seq() => ""
     case _ =>
       val sizes = for (row <- table) yield (for (cell <- row) yield if (cell == null) 0 else cell.toString.length)
@@ -18,10 +18,10 @@ object Tabulator {
       rowSeparator ::
       List()).mkString("\n")
 
-  def formatRow(row: Seq[Any], colSizes: Seq[Int]) = {
+  def formatRow(row: Seq[Any], colSizes: Seq[Int]): String = {
     val cells = (for ((item, size) <- row.zip(colSizes)) yield if (size == 0) "" else ("%" + size + "s").format(item))
     cells.mkString("|", "|", "|")
   }
 
-  def rowSeparator(colSizes: Seq[Int]) = colSizes map { "-" * _ } mkString("+", "+", "+")
+  def rowSeparator(colSizes: Seq[Int]): String = colSizes map { "-" * _ } mkString("+", "+", "+")
 }

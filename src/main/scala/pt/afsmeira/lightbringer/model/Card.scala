@@ -191,3 +191,17 @@ case class Title(
 ) extends Card {
   override def toString: String = s"Title: $name"
 }
+
+object RichCards {
+  implicit class RichMarshallableDrawCards[T <: DrawCard with Marshallable](val cards: Seq[T]) extends AnyVal {
+    def deduplicate: Seq[T] =
+      cards.groupBy(_.unique).flatMap {
+        case (false, nonUniques) => nonUniques
+        case (true,  uniques)    => uniques.distinct
+      }.toSeq
+  }
+
+  implicit class RichDrawCards[T <: DrawCard](val cards: Seq[T]) extends AnyVal {
+    def filterCostX: Seq[T] = cards.filter(_.printedCost != "X")
+  }
+}

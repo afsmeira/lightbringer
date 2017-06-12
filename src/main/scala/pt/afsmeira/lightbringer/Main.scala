@@ -21,6 +21,7 @@ object Main extends App {
 
   implicit val cardProtocol = CardProtocol(Settings.Meta)
   val decklistId = args(0)
+  val setupCardsReport = args.length >= 1 && args(1) == "-s"
 
   val cardMapTry = if (FileUtils.validCardsFile) {
     Try(FileUtils.readCardsFile.parseJson.convertTo[Seq[Card]].groupBy(_.code).mapValues(_.head))
@@ -45,9 +46,9 @@ object Main extends App {
     ).value.get
   }
 
-  deckTry.foreach(deck => println(deck.fullReport))
+  deckTry.foreach(deck => println(deck.fullReport(setupCardsReport)))
   deckTry.failed.foreach { e =>
-    println(s"Decklist with ID $decklistId was not able to be retrieved. Are you sure it exists?")
+    println(e.printStackTrace())
   }
 
   Http().shutdownAllConnectionPools() andThen { case _ => system.terminate() }

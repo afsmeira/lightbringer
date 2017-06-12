@@ -1,27 +1,23 @@
 package pt.afsmeira.lightbringer.setup
 
 import pt.afsmeira.lightbringer.model._
+import pt.afsmeira.lightbringer.model.RichCards.RichMarshallableDrawCards
 
 object SetupAnalyzer {
   private val HandSize  = 7
   private val SetupGold = 8
 
-  def analyze(deck: Deck): String = {
-    (1 to Settings.Meta.setupRuns).map { _ =>
-      val startingHand = deck.randomHand(HandSize)
-      val setups = generateSetups(startingHand, mulligan = false)
+  def analyze(deck: Deck): Seq[Setup] = (1 to Settings.Meta.setupRuns).map { _ =>
+    val startingHand = deck.randomHand(HandSize)
+    val setups = generateSetups(startingHand, mulligan = false)
 
-      // Mulligan if all setups are poor
-      val (finalHand, bestSetup) = if (setups.forall(_.isPoor)) {
-        val mulliganHand = deck.randomHand(HandSize)
-        (mulliganHand, generateSetups(mulliganHand, mulligan = true).max)
-      } else {
-        (startingHand, setups.max)
-      }
-
-      // TODO Don't do setup visualization here
-      finalHand.toString + "\n" + bestSetup.toString
-    }.mkString("\n")
+    // Mulligan if all setups are poor
+    if (setups.forall(_.isPoor)) {
+      val mulliganHand = deck.randomHand(HandSize)
+      generateSetups(mulliganHand, mulligan = true).max
+    } else {
+      setups.max
+    }
   }
 
   private def generateSetups(hand: Seq[DrawCard], mulligan: Boolean): Seq[Setup] = {
@@ -30,8 +26,8 @@ object SetupAnalyzer {
     for {
       i           <- 1 to validCards.size
       combination <- validCards.combinations(i) if combination.count(_.limited) <= 1
-      totalGold    = Setup.deduplicate(combination).map(_.cost).sum if totalGold <= SetupGold
-    } yield Setup(combination, mulligan, Settings.Setup)
+      totalGold    = combination.deduplicate.map(_.cost).sum if totalGold <= SetupGold
+    } yield Setup(combination, hand, mulligan, Settings.Setup)
   }
 
   private def filterInvalidCards(hand: Seq[DrawCard]): Seq[Setup.ValidCard] = {
