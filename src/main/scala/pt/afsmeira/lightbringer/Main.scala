@@ -58,7 +58,7 @@ object Main extends App {
 
         println(s"Fetching decklist ${arguments.deckId}...")
         Await.ready(
-          ConnectionUtils.requestCards[Deck](s"https://thronesdb.com/api/public/decklist/${arguments.deckId}"),
+          ConnectionUtils.requestCards[Deck](s"http://thronesdb.com/api/public/decklist/${arguments.deckId}"),
           ConnectionUtils.RequestTimeout
         ).value.get
       }
