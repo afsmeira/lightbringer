@@ -16,7 +16,8 @@ case class Setup(
 
   private val deduplicatedCards: Seq[Setup.ValidCard] = validCards.deduplicate
 
-  val goldUsed: Int       = deduplicatedCards.map(_.cost).sum + deduplicatedCards.count(_.economy)
+  private val virtualGoldUsed: Int = deduplicatedCards.map(_.cost).sum + deduplicatedCards.count(_.economy)
+  val goldUsed  : Int = deduplicatedCards.map(_.cost).sum
   val hasEconomy: Boolean = deduplicatedCards.exists(_.economy)
   val hasLimited: Boolean = deduplicatedCards.exists(_.limited)
 
@@ -45,7 +46,7 @@ case class Setup(
   override def compare(that: Setup): Int = Seq(
     this.validCards.size.compareTo(that.validCards.size),
     this.keyCardCount.compareTo(that.keyCardCount),
-    this.goldUsed.compareTo(that.goldUsed),
+    this.virtualGoldUsed.compareTo(that.virtualGoldUsed),
     this.hasLimited.compareTo(that.hasLimited),
     that.avoidableCardCount.compareTo(this.avoidableCardCount),
     this.distinctCharacterCount.compareTo(that.distinctCharacterCount),

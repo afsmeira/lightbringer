@@ -60,14 +60,16 @@ object FileUtils {
 
     Files.exists(path) && Files.getLastModifiedTime(path).toInstant.isAfter(instant)
   }
+  def writeCardsFile(cards: String): Unit = writeToFile(cards, CardsFile)
+  def readCardsFile: String = Source.fromFile(CardsFile).mkString
 
-  def writeCardsFile(cards: String): Unit = new PrintWriter(CardsFile) {
+  def writeReport(report: String, filePath: String): Unit = writeToFile(report, filePath)
+
+  private def writeToFile(contents: String, filePath: String) = new PrintWriter(filePath) {
     try {
-      println(cards)
+      println(contents)
     } finally {
       close()
     }
   }
-
-  def readCardsFile: String = Source.fromFile(CardsFile).mkString
 }

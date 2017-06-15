@@ -50,23 +50,23 @@ case class SetupStatistics(setups: Seq[Setup]) {
     AverageStatisticPoint[String]("Power",    setups.map(_.characters.filter(_.power).map(_.strength).sum).sum    / setups.size.toDouble)
   )
 
-  def fullReport(setupCardsReport: Boolean): String = Seq(
+  def fullReport(setupHandsReport: Boolean): String = Seq(
     "\n\nSETUP STATISTICS",
+    poorStats.toLine,
+    economyStats.toLine,
+    limitedStats.toLine,
     usedCardsStats.toTable(),
     goldStats.toTable(),
     keyCardCountStats.toTable(),
     avoidableCardCountStats.toTable(),
-    poorStats.toLine,
-    economyStats.toLine,
-    limitedStats.toLine,
     distinctCharacters.toTable(),
     totalStrength.toTable(),
     totalIconSpread.toTable("Icons", "Average number of characters per icon"),
     totalIconStrength.toTable("Icons", "Average icon strength"),
-    if (setupCardsReport) this.setupCardsReport else ""
+    if (setupHandsReport) this.setupHandsReport else ""
   ).mkString("\n\n")
 
-  private val setupCardsReport: String = {
+  private val setupHandsReport: String = {
     val header = "\nSETUP CARDS\n\n"
 
     val body = setups.map { setup =>
