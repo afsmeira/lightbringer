@@ -72,7 +72,7 @@ object Main extends App {
         }
       }
       deckTry.failed.foreach { e =>
-        println(e.printStackTrace())
+        e.printStackTrace()
       }
 
       Http().shutdownAllConnectionPools() andThen { case _ => system.terminate() }
