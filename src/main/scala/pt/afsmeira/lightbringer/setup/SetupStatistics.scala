@@ -50,6 +50,12 @@ case class SetupStatistics(setups: Seq[Setup]) {
     AverageStatisticPoint[String]("Power",    setups.map(_.characters.filter(_.power).map(_.strength).sum).sum    / setups.size.toDouble)
   )
 
+  /**
+    * Generate the setup report, as a string.
+    *
+    * @param setupHandsReport Whether the report should output all setup hands.
+    * @return The setups report.
+    */
   def fullReport(setupHandsReport: Boolean): String = Seq(
     "\n\nSETUP STATISTICS",
     poorStats.toLine,
@@ -67,6 +73,7 @@ case class SetupStatistics(setups: Seq[Setup]) {
     if (setupHandsReport) this.setupHandsReport else ""
   ).mkString("\n\n")
 
+  /** Generates a string report with the usage of each card in each generated setup. */
   val cardUsageReport: String = {
     val cardUsage = setups.flatMap(_.validCards).groupBy(_.name).mapValues(_.size * 100 / setups.size.toDouble).toSeq.sortBy {
       case (_, v) => -v
@@ -79,6 +86,7 @@ case class SetupStatistics(setups: Seq[Setup]) {
     )
   }
 
+  /** Generates a string report with each hand used for each setup. Cards that were setup are highlighted. */
   private val setupHandsReport: String = {
     val header = "\nSETUP CARDS\n\n"
 

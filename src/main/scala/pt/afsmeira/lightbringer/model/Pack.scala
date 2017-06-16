@@ -1,7 +1,13 @@
 package pt.afsmeira.lightbringer.model
 
+/**
+  * A cycle represents an history arch in the publishing of A Game of Thrones LCG 2nd edition.
+  */
 sealed trait Cycle
 
+/**
+  * Companion object that provides concrete types of [[Cycle]].
+  */
 object Cycle {
   case object Core           extends Cycle
   case object Deluxe         extends Cycle
@@ -11,11 +17,19 @@ object Cycle {
   case object BloodAndGold   extends Cycle
 }
 
+/**
+  * A pack is a group of cards released at the same time, and it belongs to a cycle. A cycle can have several packs.
+  */
 sealed trait Pack {
+  /** The name of the pack. */
   def name: String
+  /** The cycle to which the pack belongs. */
   def cycle: Cycle
 }
 
+/**
+  * Companion object that provides concrete types of [[Pack]].
+  */
 object Pack {
   case object CoreSet extends Pack {
     val name: String = "Core Set"
@@ -117,6 +131,7 @@ object Pack {
     val cycle: Cycle = Cycle.Draft
   }
 
+  /** All possible values for [[pt.afsmeira.lightbringer.model.Pack]]. */
   val values = Seq(
     CoreSet,
     TakingTheBlack,

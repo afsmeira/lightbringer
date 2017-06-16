@@ -17,6 +17,9 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.io.Source
 
+/**
+  * Object that provides utility methods for HTTP operations.
+  */
 object ConnectionUtils {
 
   private object WideOpenX509TrustManager extends X509TrustManager {
@@ -50,10 +53,15 @@ object ConnectionUtils {
   }
 }
 
+/**
+  * Object that provides utility methods for file operations.
+  */
 object FileUtils {
 
+  /** The file to store the complete set of cards. */
   private val CardsFile = ".cards.json"
 
+  /** Validate if `CardsFile` exists and was created in the last 20 days. */
   def validCardsFile: Boolean = {
     val path = Paths.get(CardsFile)
     val instant = Instant.now.minus(20, ChronoUnit.DAYS)

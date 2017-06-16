@@ -4,15 +4,25 @@ import pt.afsmeira.lightbringer.model._
 import pt.afsmeira.lightbringer.setup.MetaSettings
 import spray.json._
 
+/**
+  * The JSON protocols to unmarshall JSON objects that represet A Game of Thrones LCG 2nd edition cards and decks.
+  * <p>
+  * The JSON format is the one defined by [[https://thronesdb.com]].
+  */
 object AGoTProtocol extends DefaultJsonProtocol {
 
-  // This object is not just a JSON Reader because the Unmarshal.to() method requires a full JSON format
+  /**
+    * JSON format for A Game of Thrones LCG 2nd edition cards.
+    * <p>
+    * This object is not just a JSON Reader because the Unmarshal.to() method requires a full JSON format.
+    */
   case class CardProtocol(settings: MetaSettings) extends RootJsonFormat[Card] {
     override def read(json: JsValue): Card = {
 
       val LimitedKeyword : String = "Limited."
       val TerminalKeyword: String = "Terminal."
 
+      /** Read, from the card's text, how much income a card provides, if at all. */
       def readIncome(text: Option[String]): Option[Int] = {
         /**
           * This pattern will match a `+` or a `-` followed by a single digit and then the word `Income`.
@@ -26,6 +36,7 @@ object AGoTProtocol extends DefaultJsonProtocol {
         }
       }
 
+      /** Read, from the card's text, if a card has the bestow keyword, and what is its value. */
       def readBestow(text: Option[String]): Option[Int] = {
         /**
           * This pattern will the word `Bestow` followed by a number within parenthesis.
@@ -39,6 +50,7 @@ object AGoTProtocol extends DefaultJsonProtocol {
         }
       }
 
+      /** Read, from the attachment's text, what are the restrictions of that attachment. */
       def readAttachmentRestrictions(text: Option[String]): Attachment.Restrictions = {
         /**
           * This pattern will match any number of letters between tags `<i>` and `</i>`.
@@ -215,6 +227,11 @@ object AGoTProtocol extends DefaultJsonProtocol {
     override def write(obj: Card): JsValue = JsObject.empty
   }
 
+  /**
+    * JSON format for A Game of Thrones LCG 2nd edition decks.
+    * <p>
+    * This object is not just a JSON Reader because the Unmarshal.to() method requires a full JSON format.
+    */
   case class DeckProtocol(cardMap: Map[String, Card]) extends RootJsonFormat[Deck] {
     override def read(json: JsValue): Deck = {
       val faction = fromField[Faction](json, "faction_name")
@@ -230,12 +247,15 @@ object AGoTProtocol extends DefaultJsonProtocol {
     override def write(obj: Deck): JsValue = JsObject.empty
   }
 
+  /** Reader for [[CardType]]. */
   implicit val cardTypeReader: JsonReader[CardType] = JsonReader.func2Reader[CardType] { json =>
     CardType.values.find(_.toString == json.convertTo[String]).get
   }
+  /** Reader for [[Pack]]. */
   implicit val packReader: JsonReader[Pack] = JsonReader.func2Reader[Pack] { json =>
     Pack.values.find(_.name == json.convertTo[String]).get
   }
+  /** Reader for [[Faction]]. */
   implicit val factionReader: JsonReader[Faction] = JsonReader.func2Reader[Faction] { json =>
     Faction.values.find(_.name == json.convertTo[String]).get
   }

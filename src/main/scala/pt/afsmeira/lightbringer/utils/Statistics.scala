@@ -1,6 +1,17 @@
 package pt.afsmeira.lightbringer.utils
 
-
+/**
+  * Statistic distribution for a given field of a card.
+  * <p>
+  * Optionally, this statistic can also contain the distributions for the same field, but split by a dual predicate.
+  *
+  * @param cards         The cards to analyze.
+  * @param field         The field to get the distribution.
+  * @param fieldName     The name of the field.
+  * @param dualPredicate The predicate the dual distribution fulfills.
+  * @param dualPrefix    The name prefix of the dual field.
+  * @tparam C The type of card this statistic refers to.
+  */
 case class FieldStatistics[C](
   cards: Seq[C],
   field: C => Int,
@@ -38,6 +49,7 @@ case class FieldStatistics[C](
   val average: Double = getAverage(distribution)
   val dualAverage: Option[Double] = dualDistribution.map(getAverage)
 
+  /** Generate a string table for this statistic. */
   def toTable(
     cardinalityRowTitle: String = "#",
     percentageRowTitle:  String = "%",
@@ -72,19 +84,42 @@ case class FieldStatistics[C](
   }
 }
 
+/**
+  * A given statistic point.
+  *
+  * @tparam T The type of the field value.
+  */
 protected[utils] sealed trait StatisticPoint[T] {
+  /** The field's value. */
   def value: T
+  /** The field's meta value. Simply a placeholder for extension and name redifinition. */
   protected[utils] def metaValue: Double
 }
+
+/**
+  * A statistic point with a value and it's average.
+  *
+  * @param average The field's average.
+  */
 case class AverageStatisticPoint[T](value: T, average: Double) extends StatisticPoint[T] {
   protected[utils] def metaValue: Double = average
 }
+
+/**
+  * A statistic point with a value, it's count and percentage.
+  *
+  * @param count      The field's count.
+  * @param percentage The field's percentage.
+  */
 case class PercentageStatisticPoint[T](value: T, count: Int, percentage: Double) extends StatisticPoint[T] {
   protected[utils] def metaValue: Double = percentage
 
   def toLine: String = f"$value: $count ($percentage%.2f%%)"
 }
 
+/**
+  * Object that provides enrichment classes over collections of [[StatisticPoint]].
+  */
 object RichStatistics {
 
   private[utils] def headerRow(title: String, sortedStats: Seq[StatisticPoint[_]]): Seq[String] =
@@ -97,12 +132,20 @@ object RichStatistics {
     title +: sortedStats.map(_.count.toString) :+ sortedStats.map(_.count).sum.toString
 
   implicit class RichAverageStatisticPoints(val simpleStatisticPoints: Seq[AverageStatisticPoint[_]]) extends AnyVal {
+    /**
+      * Output the information in a sequence of [[pt.afsmeira.lightbringer.utils.AverageStatisticPoint]] in a table
+      * format.
+      */
     def toTable(fieldName: String, averageRowTitle: String): String = Tabulator.format(
       Seq(headerRow(fieldName, simpleStatisticPoints), metaValueRow(averageRowTitle, simpleStatisticPoints))
     )
   }
 
   implicit class RichPercentageStatisticPoints(val points: Seq[PercentageStatisticPoint[_]]) extends AnyVal {
+    /**
+      * Output the information in a sequence of [[pt.afsmeira.lightbringer.utils.PercentageStatisticPoint]] in a table
+      * format.
+      */
     def toTable(
       fieldName: String,
       cardinalityRowTitle: String = "#",

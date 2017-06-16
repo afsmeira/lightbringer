@@ -9,11 +9,28 @@ case class Settings(
   setup: SetupSettings
 )
 
+/**
+  * Settings for internal Lightbringer properties.
+  *
+  * @param economyCards The set of cards (either name or code) that provide economy.
+  * @param setupRuns    The number of setup runs to be made.
+  */
 case class MetaSettings(
   economyCards: Set[String],
   setupRuns: Int
 )
 
+/**
+  * Settings for Lightbringer's Setup Analyzer.
+  *
+  * @param requireTwoCharacters     Whether a setup requires two characters to not be considered poor.
+  * @param requireFourCostCharacter Whether a setup requires a four cost character to not be considered poor.
+  * @param requireEconomy           Whether a setup requires an economy card to not be considered poor.
+  * @param requireKeyCard           Whether a setup requires a key card to not be considered poor.
+  * @param minCardsRequired         The minimum number of cards required for a setup to not be considered poor.
+  * @param keyCards                 The set of cards (either name or code) that are considered key.
+  * @param avoidableCards           The set of cards (either name or code) that are considered avoidable.
+  */
 case class SetupSettings(
   requireTwoCharacters: Boolean,
   requireFourCostCharacter: Boolean,

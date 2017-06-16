@@ -1,12 +1,21 @@
 package pt.afsmeira.lightbringer.model
 
+/**
+  * The faction of a card.
+  */
 sealed trait Faction {
+  /** The faction's name. */
   def name: String
+  /** The faction's keyword. */
   def keyword: Option[String]
 }
 
+/**
+  * Companion object that provides concrete types of [[Faction]].
+  */
 object Faction {
 
+  /** The Neutral faction. This is the faction of all cards that do not have an explicit faction. */
   case object Neutral extends Faction {
     val name: String = "Neutral"
     val keyword: Option[String] = None
@@ -44,6 +53,7 @@ object Faction {
     val keyword: Option[String] = Some("tyrell")
   }
 
+  /** All possible values for [[pt.afsmeira.lightbringer.model.Faction]]. */
   val values = Seq(
     Neutral,
     Baratheon,

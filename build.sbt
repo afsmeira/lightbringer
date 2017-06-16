@@ -2,7 +2,7 @@ scalaVersion := "2.11.8"
 
 name         := "lightbringer"
 organization := "pt.afsmeira"
-version      := "1.0.0-SNAPSHOT"
+version      := "1.0.0"
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka"          %% "akka-http"            % "10.0.7",
