@@ -3,7 +3,7 @@ package pt.afsmeira.lightbringer.model
 import pt.afsmeira.lightbringer.model.RichCards.{RichDrawCards, RichMarshallableDrawCards}
 import pt.afsmeira.lightbringer.setup.{SetupAnalyzer, SetupStatistics}
 import pt.afsmeira.lightbringer.utils.{FieldStatistics, PercentageStatisticPoint}
-import pt.afsmeira.lightbringer.utils.RichStatistics.{RichFieldStatistics, RichPercentageStatisticPoints}
+import pt.afsmeira.lightbringer.utils.RichStatistics.RichPercentageStatisticPoints
 
 import scala.reflect.ClassTag
 import scala.reflect._

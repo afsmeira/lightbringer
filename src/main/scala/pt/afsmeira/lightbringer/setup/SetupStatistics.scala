@@ -1,7 +1,7 @@
 package pt.afsmeira.lightbringer.setup
 
-import pt.afsmeira.lightbringer.utils.{AverageStatisticPoint, FieldStatistics, PercentageStatisticPoint}
-import pt.afsmeira.lightbringer.utils.RichStatistics.{RichAverageStatisticPoints, RichFieldStatistics, RichPercentageStatisticPoint}
+import pt.afsmeira.lightbringer.utils.{AverageStatisticPoint, FieldStatistics, PercentageStatisticPoint, Tabulator}
+import pt.afsmeira.lightbringer.utils.RichStatistics.RichAverageStatisticPoints
 
 case class SetupStatistics(setups: Seq[Setup]) {
 
@@ -63,8 +63,21 @@ case class SetupStatistics(setups: Seq[Setup]) {
     totalStrength.toTable(),
     totalIconSpread.toTable("Icons", "Average number of characters per icon"),
     totalIconStrength.toTable("Icons", "Average icon strength"),
+    cardUsageReport,
     if (setupHandsReport) this.setupHandsReport else ""
   ).mkString("\n\n")
+
+  val cardUsageReport: String = {
+    val cardUsage = setups.flatMap(_.validCards).groupBy(_.name).mapValues(_.size * 100 / setups.size.toDouble).toSeq.sortBy {
+      case (_, v) => -v
+    }.map {
+      case (k, v) => Seq(k, f"$v%.2f")
+    }
+
+    Tabulator.format(
+      Seq("Card", "% of setups used in") +: Seq(cardUsage: _*)
+    )
+  }
 
   private val setupHandsReport: String = {
     val header = "\nSETUP CARDS\n\n"
