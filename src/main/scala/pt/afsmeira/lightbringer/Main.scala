@@ -4,6 +4,7 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.stream.ActorMaterializer
+import com.typesafe.scalalogging.StrictLogging
 import pt.afsmeira.lightbringer.model.{Card, Deck}
 import pt.afsmeira.lightbringer.setup.Settings
 import pt.afsmeira.lightbringer.utils.AGoTProtocol._
@@ -14,7 +15,7 @@ import spray.json._
 import scala.concurrent.Await
 import scala.util.Try
 
-object Main extends App {
+object Main extends App with StrictLogging {
 
   implicit val system = ActorSystem()
   implicit val materializer = ActorMaterializer()
@@ -43,20 +44,21 @@ object Main extends App {
       val cardMapTry = if (FileUtils.validCardsFile) {
         Try(FileUtils.readCardsFile.parseJson.convertTo[Seq[Card]].groupBy(_.code).mapValues(_.head))
       } else {
-        println("Local card information is outdated or inexistent. Fetching from remote...")
+        logger.info("Local card information is outdated or inexistent. Fetching from remote...")
         Await.ready(
           ConnectionUtils.requestCards[String]("https://thronesdb.com/api/public/cards/"),
           ConnectionUtils.RequestTimeout
         ).value.get.map { cards =>
-          FileUtils.writeCardsFile(cards)
-          cards.parseJson.convertTo[Seq[Card]].groupBy(_.code).mapValues(_.head)
+          val cardsMap = cards.parseJson.convertTo[Seq[Card]].groupBy(_.code).mapValues(_.head)
+          FileUtils.writeCardsFile(cards) // Only write to file if parsing was successful
+          cardsMap
         }
       }
 
       val deckTry = cardMapTry.flatMap { cardMap =>
         implicit val deckProtocol = DeckProtocol(cardMap)
 
-        println(s"Fetching decklist ${arguments.deckId}...")
+        logger.info(s"Fetching decklist ${arguments.deckId}...")
         Await.ready(
           ConnectionUtils.requestCards[Deck](s"http://thronesdb.com/api/public/decklist/${arguments.deckId}"),
           ConnectionUtils.RequestTimeout
@@ -67,12 +69,17 @@ object Main extends App {
         val deckReport = deck.fullReport(arguments.setupHandsReport)
 
         arguments.outputToFile match {
-          case Some(file) => FileUtils.writeReport(deckReport, file)
-          case None => println(deckReport)
+          case Some(file) =>
+            logger.info(s"Writing deck analysis to file $file")
+            FileUtils.writeReport(deckReport, file)
+          case None =>
+            logger.info(deckReport)
         }
+
+        logger.info(s"Finished analysis of deck ${arguments.deckId}")
       }
       deckTry.failed.foreach { e =>
-        e.printStackTrace()
+        logger.error(s"Failed to analyse deck ${arguments.deckId}", e)
       }
 
       Http().shutdownAllConnectionPools() andThen { case _ => system.terminate() }
