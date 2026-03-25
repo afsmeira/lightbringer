@@ -407,19 +407,18 @@
           <input type="checkbox" id="cfg-economy" checked>
           Require economy
         </label>
+        <div class="section-label" style="margin-top:0.4rem;">Key Cards</div>
+        <textarea
+          id="key-cards-input"
+          class="economy-textarea"
+          rows="2"
+          placeholder="Key card names or IDs, one per line or comma-separated…"
+          spellcheck="false"
+        ></textarea>
         <label class="cfg-check">
           <input type="checkbox" id="cfg-key-cards">
           Require key card
         </label>
-        <div id="key-cards-wrap" style="display:none;">
-          <textarea
-            id="key-cards-input"
-            class="economy-textarea"
-            rows="2"
-            placeholder="Key card names or IDs, one per line or comma-separated…"
-            spellcheck="false"
-          ></textarea>
-        </div>
         <label class="cfg-check">
           <input type="checkbox" id="cfg-no-avoidable">
           Require no avoidable cards
@@ -802,10 +801,7 @@
       document.getElementById(id).addEventListener('change', rerender);
     });
 
-    document.getElementById('cfg-key-cards').addEventListener('change', function () {
-      document.getElementById('key-cards-wrap').style.display = this.checked ? 'block' : 'none';
-      rerender();
-    });
+    document.getElementById('cfg-key-cards').addEventListener('change', rerender);
 
     document.getElementById('cfg-no-avoidable').addEventListener('change', function () {
       document.getElementById('avoidable-cards-wrap').style.display = this.checked ? 'block' : 'none';
