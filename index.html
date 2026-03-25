@@ -663,7 +663,50 @@
       }
 
       // Each drawn copy is independent — no deduplication
-      return results.sort((a, b) => b.total - a.total || b.cards.length - a.cards.length);
+      return results;
+    }
+
+    function sortSetups(setups) {
+      const keySet = document.getElementById('cfg-key-cards').checked
+        ? parseCardSet('key-cards-input')
+        : new Set();
+
+      const virtualGold = cards => cards.reduce((sum, c) => {
+        if (c.isDuplicate) return sum;
+        return sum + c.effectiveCost + (c.income_modifier > 0 ? c.income_modifier : 0);
+      }, 0);
+
+      return setups.slice().sort((a, b) => {
+        // 1. non-poor first
+        const poorDiff = (isPoorSetup(a.cards) ? 1 : 0) - (isPoorSetup(b.cards) ? 1 : 0);
+        if (poorDiff !== 0) return poorDiff;
+
+        // 2. more cards is better
+        if (b.cards.length !== a.cards.length) return b.cards.length - a.cards.length;
+
+        // 3. more key cards is better
+        const keyDiff = b.cards.filter(c => cardInSet(c, keySet)).length
+                      - a.cards.filter(c => cardInSet(c, keySet)).length;
+        if (keyDiff !== 0) return keyDiff;
+
+        // 4. higher virtual gold is better
+        const vgDiff = virtualGold(b.cards) - virtualGold(a.cards);
+        if (vgDiff !== 0) return vgDiff;
+
+        // 5. has a limited card is better
+        const limDiff = (b.cards.some(c => c.is_limited) ? 1 : 0)
+                      - (a.cards.some(c => c.is_limited) ? 1 : 0);
+        if (limDiff !== 0) return limDiff;
+
+        // 6. more characters (non-duplicate) is better
+        const nonDupChars = cards => cards.filter(c => c.type_name === 'Character' && !c.isDuplicate);
+        const charDiff = nonDupChars(b.cards).length - nonDupChars(a.cards).length;
+        if (charDiff !== 0) return charDiff;
+
+        // 7. higher total character strength is better
+        const str = cards => nonDupChars(cards).reduce((s, c) => s + (c.strength || 0), 0);
+        return str(b.cards) - str(a.cards);
+      });
     }
 
     function simulateSetup() {
@@ -716,6 +759,7 @@
     function renderSetups(setups) {
       const label = document.getElementById('setups-label');
       const el    = document.getElementById('setups-display');
+      setups = sortSetups(setups);
 
       label.textContent = `Valid setups (${setups.length})`;
 
