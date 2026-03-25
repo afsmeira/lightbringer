@@ -407,6 +407,32 @@
           <input type="checkbox" id="cfg-economy" checked>
           Require economy
         </label>
+        <label class="cfg-check">
+          <input type="checkbox" id="cfg-key-cards">
+          Require key card
+        </label>
+        <div id="key-cards-wrap" style="display:none;">
+          <textarea
+            id="key-cards-input"
+            class="economy-textarea"
+            rows="2"
+            placeholder="Key card names or IDs, one per line or comma-separated…"
+            spellcheck="false"
+          ></textarea>
+        </div>
+        <label class="cfg-check">
+          <input type="checkbox" id="cfg-no-avoidable">
+          Require no avoidable cards
+        </label>
+        <div id="avoidable-cards-wrap" style="display:none;">
+          <textarea
+            id="avoidable-cards-input"
+            class="economy-textarea"
+            rows="2"
+            placeholder="Avoidable card names or IDs, one per line or comma-separated…"
+            spellcheck="false"
+          ></textarea>
+        </div>
         <div class="cfg-slider-row">
           <span>Minimum cards in setup</span>
           <input type="range" id="cfg-min-cards" min="1" max="7" value="3">
@@ -483,9 +509,17 @@
       return cachedCards;
     }
 
-    function getEconomySet() {
-      const raw = document.getElementById('economy-input').value;
+    function parseCardSet(textareaId) {
+      const raw = document.getElementById(textareaId).value;
       return new Set(raw.split(/[\n,]+/).map(s => s.trim().toLowerCase()).filter(Boolean));
+    }
+
+    function getEconomySet() {
+      return parseCardSet('economy-input');
+    }
+
+    function cardInSet(card, set) {
+      return set.has(card.name.toLowerCase()) || set.has(card.code.toLowerCase());
     }
 
     function getConfig() {
@@ -493,6 +527,8 @@
         requireTwoChars:    document.getElementById('cfg-two-chars').checked,
         requireFourCost:    document.getElementById('cfg-four-cost').checked,
         requireEconomy:     document.getElementById('cfg-economy').checked,
+        requireKeyCard:     document.getElementById('cfg-key-cards').checked,
+        requireNoAvoidable: document.getElementById('cfg-no-avoidable').checked,
         minCards:           parseInt(document.getElementById('cfg-min-cards').value, 10),
       };
     }
@@ -509,6 +545,14 @@
         if (!hasFour) return true;
       }
       if (cfg.requireEconomy && !cards.some(c => c.is_economy)) return true;
+      if (cfg.requireKeyCard) {
+        const keySet = parseCardSet('key-cards-input');
+        if (keySet.size > 0 && !cards.some(c => cardInSet(c, keySet))) return true;
+      }
+      if (cfg.requireNoAvoidable) {
+        const avoidSet = parseCardSet('avoidable-cards-input');
+        if (avoidSet.size > 0 && cards.some(c => cardInSet(c, avoidSet))) return true;
+      }
       return false;
     }
 
@@ -516,8 +560,7 @@
       if (!cachedCards) return;
       const economySet = getEconomySet();
       for (const card of Object.values(cachedCards)) {
-        const inList = economySet.has(card.name.toLowerCase()) || economySet.has(card.code.toLowerCase());
-        card.is_economy = !!(card.is_limited || card.income_modifier > 0 || inList);
+        card.is_economy = !!(card.is_limited || card.income_modifier > 0 || cardInSet(card, economySet));
       }
     }
 
@@ -714,6 +757,19 @@
     ['cfg-two-chars', 'cfg-four-cost', 'cfg-economy'].forEach(id => {
       document.getElementById(id).addEventListener('change', rerender);
     });
+
+    document.getElementById('cfg-key-cards').addEventListener('change', function () {
+      document.getElementById('key-cards-wrap').style.display = this.checked ? 'block' : 'none';
+      rerender();
+    });
+
+    document.getElementById('cfg-no-avoidable').addEventListener('change', function () {
+      document.getElementById('avoidable-cards-wrap').style.display = this.checked ? 'block' : 'none';
+      rerender();
+    });
+
+    document.getElementById('key-cards-input').addEventListener('input', rerender);
+    document.getElementById('avoidable-cards-input').addEventListener('input', rerender);
 
     document.getElementById('cfg-min-cards').addEventListener('input', function () {
       document.getElementById('cfg-min-cards-val').textContent = this.value;
