@@ -660,8 +660,13 @@
         if (total <= SETUP_GOLD && limitedCount <= 1) results.push({ cards: cardsWithDetails, total });
       }
 
-      // Each drawn copy is independent — no deduplication
-      return results;
+      const seen = new Set();
+      return results.filter(({ cards }) => {
+        const key = cards.map(c => c.code).sort().join('|');
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
     }
 
     function sortSetups(setups) {
