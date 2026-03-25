@@ -344,6 +344,8 @@
       cachedCards = {};
       for (const card of cards) {
         card.is_limited = typeof card.text === 'string' && card.text.includes('Limited.');
+        const incomeMatch = typeof card.text === 'string' && card.text.match(/([+-]\d+)\s+Income/);
+        card.income_modifier = incomeMatch ? parseInt(incomeMatch[1], 10) : null;
         cachedCards[card.code] = card;
       }
       return cachedCards;
