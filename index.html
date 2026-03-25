@@ -262,6 +262,29 @@
       font-size: 0.88rem;
       font-style: italic;
     }
+
+    /* Economy input */
+    .economy-textarea {
+      width: 100%;
+      background: #120c04;
+      border: 1px solid #4a3510;
+      border-radius: 5px;
+      padding: 0.5rem 0.75rem;
+      color: #e8d5a3;
+      font-size: 0.82rem;
+      font-family: monospace;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+      margin-bottom: 1.5rem;
+    }
+    .economy-textarea:focus { border-color: #c9952a; }
+    .economy-textarea::placeholder { color: #5a4020; }
+
+    .setup-combo.no-economy {
+      border-left: 3px solid #c9952a;
+      background: #1e1404;
+    }
   </style>
 </head>
 <body>
@@ -296,6 +319,15 @@
         <button onclick="simulateSetup()">Draw Again</button>
       </div>
 
+      <div class="section-label">Economy Cards</div>
+      <textarea
+        id="economy-input"
+        class="economy-textarea"
+        rows="3"
+        placeholder="Card names or IDs, one per line or comma-separated…"
+        spellcheck="false"
+      ></textarea>
+
       <div class="section-label">Hand</div>
       <div class="hand-grid" id="hand-display"></div>
 
@@ -314,6 +346,7 @@
     let cachedCards    = null;
     let currentSlots   = null;   // { code: qty, … } for active deck
     let currentCardMap = null;
+    let currentHand    = null;
 
     // ── Utilities ────────────────────────────────────────────────────────────
 
@@ -348,7 +381,22 @@
         card.income_modifier = incomeMatch ? parseInt(incomeMatch[1], 10) : null;
         cachedCards[card.code] = card;
       }
+      updateEconomyFlags();
       return cachedCards;
+    }
+
+    function getEconomySet() {
+      const raw = document.getElementById('economy-input').value;
+      return new Set(raw.split(/[\n,]+/).map(s => s.trim().toLowerCase()).filter(Boolean));
+    }
+
+    function updateEconomyFlags() {
+      if (!cachedCards) return;
+      const economySet = getEconomySet();
+      for (const card of Object.values(cachedCards)) {
+        const inList = economySet.has(card.name.toLowerCase()) || economySet.has(card.code.toLowerCase());
+        card.is_economy = !!(card.is_limited || card.income_modifier > 0 || inList);
+      }
     }
 
     // ── Analyze ───────────────────────────────────────────────────────────────
@@ -456,10 +504,10 @@
       if (!currentSlots || !currentCardMap) return;
 
       const pool = buildDeckPool(currentSlots, currentCardMap);
-      const hand = drawHand(pool, 7);
-      const setups = allValidSetups(hand);
+      currentHand = drawHand(pool, 7);
+      const setups = allValidSetups(currentHand);
 
-      renderHand(hand);
+      renderHand(currentHand);
       renderSetups(setups);
 
       document.getElementById('setup-section').style.display = 'block';
@@ -516,8 +564,9 @@
             : `<span style="color:#6a5030;font-size:0.75rem">${c.effectiveCost}g</span>`;
           return `<span class="combo-card-name">${c.name} ${costTag}</span>`;
         }).join('');
+        const noEconomy = cards.every(c => !c.is_economy);
         return `
-          <div class="setup-combo">
+          <div class="setup-combo${noEconomy ? ' no-economy' : ''}">
             <div class="combo-cards">${names}</div>
             <div class="combo-total">${total} / ${SETUP_GOLD}g</div>
           </div>`;
@@ -526,6 +575,14 @@
 
     document.getElementById('deck-url').addEventListener('keydown', e => {
       if (e.key === 'Enter') analyze();
+    });
+
+    document.getElementById('economy-input').addEventListener('input', () => {
+      updateEconomyFlags();
+      if (currentHand) {
+        renderHand(currentHand);
+        renderSetups(allValidSetups(currentHand));
+      }
     });
   </script>
 
