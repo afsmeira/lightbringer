@@ -419,19 +419,18 @@
           <input type="checkbox" id="cfg-key-cards">
           Require key card
         </label>
+        <div class="section-label" style="margin-top:0.4rem;">Avoidable Cards</div>
+        <textarea
+          id="avoidable-cards-input"
+          class="economy-textarea"
+          rows="2"
+          placeholder="Avoidable card names or IDs, one per line or comma-separated…"
+          spellcheck="false"
+        ></textarea>
         <label class="cfg-check">
           <input type="checkbox" id="cfg-no-avoidable">
           Require no avoidable cards
         </label>
-        <div id="avoidable-cards-wrap" style="display:none;">
-          <textarea
-            id="avoidable-cards-input"
-            class="economy-textarea"
-            rows="2"
-            placeholder="Avoidable card names or IDs, one per line or comma-separated…"
-            spellcheck="false"
-          ></textarea>
-        </div>
         <div class="cfg-slider-row">
           <span>Minimum cards in setup</span>
           <input type="range" id="cfg-min-cards" min="1" max="7" value="3">
@@ -697,12 +696,18 @@
                       - (a.cards.some(c => c.is_limited) ? 1 : 0);
         if (limDiff !== 0) return limDiff;
 
-        // 6. more characters (non-duplicate) is better
+        // 6. fewer avoidable cards is better
+        const avoidSet = parseCardSet('avoidable-cards-input');
+        const avoidDiff = a.cards.filter(c => cardInSet(c, avoidSet)).length
+                        - b.cards.filter(c => cardInSet(c, avoidSet)).length;
+        if (avoidDiff !== 0) return avoidDiff;
+
+        // 8. more characters (non-duplicate) is better
         const nonDupChars = cards => cards.filter(c => c.type_name === 'Character' && !c.isDuplicate);
         const charDiff = nonDupChars(b.cards).length - nonDupChars(a.cards).length;
         if (charDiff !== 0) return charDiff;
 
-        // 7. higher total character strength is better
+        // 9. higher total character strength is better
         const str = cards => nonDupChars(cards).reduce((s, c) => s + (c.strength || 0), 0);
         return str(b.cards) - str(a.cards);
       });
@@ -803,10 +808,7 @@
 
     document.getElementById('cfg-key-cards').addEventListener('change', rerender);
 
-    document.getElementById('cfg-no-avoidable').addEventListener('change', function () {
-      document.getElementById('avoidable-cards-wrap').style.display = this.checked ? 'block' : 'none';
-      rerender();
-    });
+    document.getElementById('cfg-no-avoidable').addEventListener('change', rerender);
 
     document.getElementById('key-cards-input').addEventListener('input', rerender);
     document.getElementById('avoidable-cards-input').addEventListener('input', rerender);
