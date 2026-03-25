@@ -670,9 +670,7 @@
     }
 
     function sortSetups(setups) {
-      const keySet = document.getElementById('cfg-key-cards').checked
-        ? parseCardSet('key-cards-input')
-        : new Set();
+      const keySet = parseCardSet('key-cards-input');
 
       const virtualGold = cards => cards.reduce((sum, c) => {
         if (c.isDuplicate) return sum;
