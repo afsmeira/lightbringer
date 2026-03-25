@@ -281,9 +281,79 @@
     .economy-textarea:focus { border-color: #c9952a; }
     .economy-textarea::placeholder { color: #5a4020; }
 
-    .setup-combo.no-economy {
-      border-left: 3px solid #c9952a;
-      background: #1e1404;
+    /* Config controls */
+    .config-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .cfg-check {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      font-size: 0.88rem;
+      color: #c8b880;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .cfg-check input[type="checkbox"] {
+      appearance: none;
+      width: 15px;
+      height: 15px;
+      border: 1px solid #4a3510;
+      border-radius: 3px;
+      background: #120c04;
+      cursor: pointer;
+      flex-shrink: 0;
+      position: relative;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .cfg-check input[type="checkbox"]:checked {
+      background: #c9952a;
+      border-color: #c9952a;
+    }
+
+    .cfg-check input[type="checkbox"]:checked::after {
+      content: '';
+      position: absolute;
+      left: 3px;
+      top: 1px;
+      width: 5px;
+      height: 8px;
+      border: 2px solid #1a1008;
+      border-top: none;
+      border-left: none;
+      transform: rotate(45deg);
+    }
+
+    .cfg-slider-row {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.88rem;
+      color: #c8b880;
+    }
+
+    .cfg-slider-row input[type="range"] {
+      flex: 1;
+      accent-color: #c9952a;
+      cursor: pointer;
+    }
+
+    .cfg-slider-val {
+      font-family: sans-serif;
+      font-weight: bold;
+      color: #c9952a;
+      min-width: 1.2em;
+      text-align: right;
+    }
+
+    .setup-combo.poor {
+      border-left: 3px solid #d9534f;
+      background: #1e0a0a;
     }
   </style>
 </head>
@@ -309,14 +379,10 @@
     <div id="status"></div>
   </div>
 
-  <div id="setup-section">
+  <div id="config-section" style="display:none; margin-top:2rem; width:100%; max-width:680px;">
     <div class="panel">
       <div class="panel-header">
-        <div>
-          <div class="panel-title">Setup Simulator</div>
-          <div class="panel-subtitle" id="setup-subtitle">All valid plays from a 7-card draw (≤ 8 gold)</div>
-        </div>
-        <button onclick="simulateSetup()">Draw Again</button>
+        <div><div class="panel-title">Analyzer Configuration</div></div>
       </div>
 
       <div class="section-label">Economy Cards</div>
@@ -327,6 +393,38 @@
         placeholder="Card names or IDs, one per line or comma-separated…"
         spellcheck="false"
       ></textarea>
+
+      <div class="config-controls">
+        <label class="cfg-check">
+          <input type="checkbox" id="cfg-two-chars" checked>
+          Require at least 2 characters
+        </label>
+        <label class="cfg-check">
+          <input type="checkbox" id="cfg-four-cost">
+          Require a 4+ cost character
+        </label>
+        <label class="cfg-check">
+          <input type="checkbox" id="cfg-economy" checked>
+          Require economy
+        </label>
+        <div class="cfg-slider-row">
+          <span>Minimum cards in setup</span>
+          <input type="range" id="cfg-min-cards" min="1" max="7" value="3">
+          <span class="cfg-slider-val" id="cfg-min-cards-val">3</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="setup-section">
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">Setup Simulator</div>
+          <div class="panel-subtitle" id="setup-subtitle">All valid plays from a 7-card draw (≤ 8 gold)</div>
+        </div>
+        <button onclick="simulateSetup()">Draw Again</button>
+      </div>
 
       <div class="section-label">Hand</div>
       <div class="hand-grid" id="hand-display"></div>
@@ -390,6 +488,30 @@
       return new Set(raw.split(/[\n,]+/).map(s => s.trim().toLowerCase()).filter(Boolean));
     }
 
+    function getConfig() {
+      return {
+        requireTwoChars:    document.getElementById('cfg-two-chars').checked,
+        requireFourCost:    document.getElementById('cfg-four-cost').checked,
+        requireEconomy:     document.getElementById('cfg-economy').checked,
+        minCards:           parseInt(document.getElementById('cfg-min-cards').value, 10),
+      };
+    }
+
+    function isPoorSetup(cards) {
+      const cfg = getConfig();
+      if (cards.length < cfg.minCards) return true;
+      if (cfg.requireTwoChars) {
+        const chars = cards.filter(c => c.type_name === 'Character' && !c.isDuplicate).length;
+        if (chars < 2) return true;
+      }
+      if (cfg.requireFourCost) {
+        const hasFour = cards.some(c => c.type_name === 'Character' && !c.isDuplicate && c._cost >= 4);
+        if (!hasFour) return true;
+      }
+      if (cfg.requireEconomy && !cards.some(c => c.is_economy)) return true;
+      return false;
+    }
+
     function updateEconomyFlags() {
       if (!cachedCards) return;
       const economySet = getEconomySet();
@@ -404,6 +526,7 @@
     async function analyze() {
       const btn = document.getElementById('analyze-btn');
       const urlInput = document.getElementById('deck-url').value;
+      document.getElementById('config-section').style.display = 'none';
       document.getElementById('setup-section').style.display = 'none';
 
       const deckId = parseDeckId(urlInput);
@@ -510,6 +633,7 @@
       renderHand(currentHand);
       renderSetups(setups);
 
+      document.getElementById('config-section').style.display = 'block';
       document.getElementById('setup-section').style.display = 'block';
     }
 
@@ -564,9 +688,8 @@
             : `<span style="color:#6a5030;font-size:0.75rem">${c.effectiveCost}g</span>`;
           return `<span class="combo-card-name">${c.name} ${costTag}</span>`;
         }).join('');
-        const noEconomy = cards.every(c => !c.is_economy);
         return `
-          <div class="setup-combo${noEconomy ? ' no-economy' : ''}">
+          <div class="setup-combo${isPoorSetup(cards) ? ' poor' : ''}">
             <div class="combo-cards">${names}</div>
             <div class="combo-total">${total} / ${SETUP_GOLD}g</div>
           </div>`;
@@ -577,12 +700,24 @@
       if (e.key === 'Enter') analyze();
     });
 
+    function rerender() {
+      if (!currentHand) return;
+      renderHand(currentHand);
+      renderSetups(allValidSetups(currentHand));
+    }
+
     document.getElementById('economy-input').addEventListener('input', () => {
       updateEconomyFlags();
-      if (currentHand) {
-        renderHand(currentHand);
-        renderSetups(allValidSetups(currentHand));
-      }
+      rerender();
+    });
+
+    ['cfg-two-chars', 'cfg-four-cost', 'cfg-economy'].forEach(id => {
+      document.getElementById(id).addEventListener('change', rerender);
+    });
+
+    document.getElementById('cfg-min-cards').addEventListener('input', function () {
+      document.getElementById('cfg-min-cards-val').textContent = this.value;
+      rerender();
     });
   </script>
 
