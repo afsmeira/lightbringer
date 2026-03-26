@@ -782,6 +782,9 @@
         const avoidableDist = new Array(8).fill(0);  // indices 0-7 avoidable cards
         const keySet        = parseCardSet('key-cards-input');
         const avoidSet      = parseCardSet('avoidable-cards-input');
+        const iconTotals         = [0, 0, 0]; // [military, intrigue, power] character counts
+        const iconStrengthTotals = [0, 0, 0]; // [military, intrigue, power] strength sums
+        let   iconSetupCount = 0;
 
         for (let i = 0; i < SIM_COUNT; i++) {
           let hand   = drawHand(pool, 7);
@@ -806,11 +809,20 @@
           if (totalStr < strengthDist.length) strengthDist[totalStr]++;
           keyCardsDist[best.cards.filter(c => cardInSet(c, keySet)).length]++;
           avoidableDist[best.cards.filter(c => cardInSet(c, avoidSet)).length]++;
+          iconSetupCount++;
+          for (const c of distinctChars) {
+            const str = c.strength || 0;
+            if (c.is_military) { iconTotals[0]++; iconStrengthTotals[0] += str; }
+            if (c.is_intrigue) { iconTotals[1]++; iconStrengthTotals[1] += str; }
+            if (c.is_power)    { iconTotals[2]++; iconStrengthTotals[2] += str; }
+          }
           if (best.cards.some(c => c.is_economy)) economyCount++;
           if (best.cards.some(c => c.is_limited)) limitedCount++;
         }
 
-        renderStats(poorCount, economyCount, limitedCount, mulliganCount, mulliganSuccessCount, goldDist, cardsDist, charsDist, strengthDist, keyCardsDist, avoidableDist);
+        const iconAvg         = iconTotals.map(t => iconSetupCount > 0 ? t / iconSetupCount : 0);
+        const iconStrengthAvg = iconStrengthTotals.map(t => iconSetupCount > 0 ? t / iconSetupCount : 0);
+        renderStats(poorCount, economyCount, limitedCount, mulliganCount, mulliganSuccessCount, goldDist, cardsDist, charsDist, strengthDist, keyCardsDist, avoidableDist, iconAvg, iconTotals, iconStrengthAvg, iconStrengthTotals);
         btn.disabled = false;
 
         document.getElementById('config-section').style.display = 'block';
@@ -818,7 +830,7 @@
       }, 0);
     }
 
-    function renderStats(poorCount, economyCount, limitedCount, mulliganCount, mulliganSuccessCount, goldDist, cardsDist, charsDist, strengthDist, keyCardsDist, avoidableDist) {
+    function renderStats(poorCount, economyCount, limitedCount, mulliganCount, mulliganSuccessCount, goldDist, cardsDist, charsDist, strengthDist, keyCardsDist, avoidableDist, iconAvg, iconTotals, iconStrengthAvg, iconStrengthTotals) {
       const pct = v => `${Math.round(v / SIM_COUNT * 100)}%`;
       const mulliganPct = mulliganCount > 0 ? `${Math.round(mulliganSuccessCount / mulliganCount * 100)}% of mulligans` : 'n/a';
       document.getElementById('stats-display').innerHTML = `
@@ -854,7 +866,9 @@
         ${trimAndRender(charsDist,     'Distinct Characters',  i => String(i))}
         ${trimAndRender(strengthDist,  'Character Strength',   i => String(i))}
         ${trimAndRender(keyCardsDist,  'Key Cards',  i => String(i))}
-        ${trimAndRender(avoidableDist, 'Avoidable Cards', i => String(i))}`;
+        ${trimAndRender(avoidableDist, 'Avoidable Cards', i => String(i))}
+        ${renderIconSpread(iconAvg,         iconTotals,         'Icon Spread')}
+        ${renderIconSpread(iconStrengthAvg, iconStrengthTotals, 'Icon Strength')}`;
     }
 
     function trimAndRender(dist, title, labelFn) {
@@ -862,6 +876,86 @@
       const last    = dist.length - 1 - [...dist].reverse().findIndex(v => v > 0);
       const trimmed = dist.slice(first, last + 1);
       return renderHistogram(trimmed, title, i => labelFn(i + first));
+    }
+
+    function renderIconSpread(iconAvg, iconTotals, title) {
+      const labels  = ['Military', 'Intrigue', 'Power'];
+      const maxVal  = Math.max(...iconAvg, 0.1);
+      const yMax    = Math.ceil(maxVal / 0.5) * 0.5;
+      const tickCount = Math.round(yMax / 0.5);
+      const ticks   = Array.from({ length: tickCount + 1 }, (_, i) => +(i * 0.5).toFixed(1));
+
+      const mL = 48, mR = 16, mT = 32, mB = 36;
+      const W  = 580, H  = 202;
+      const iW = W - mL - mR;
+      const iH = H - mT - mB;
+
+      const barW  = iW / 3;
+      const gap   = barW * 0.18;
+      const xPos  = i => mL + i * barW;
+      const yPos  = v => mT + iH - (v / yMax) * iH;
+      const barHt = v => (v / yMax) * iH;
+
+      let s = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg"
+        style="width:100%;display:block;margin-top:1.5rem;overflow:visible">`;
+
+      // Chart title
+      s += `<text x="${(W / 2).toFixed(1)}" y="${mT - 16}"
+        text-anchor="middle" font-family="sans-serif" font-size="12" fill="#a89060"
+        letter-spacing="0.05em">${title}</text>`;
+
+      // Horizontal grid lines
+      for (const t of ticks) {
+        const cy = yPos(t);
+        s += `<line x1="${mL}" y1="${cy.toFixed(1)}" x2="${W - mR}" y2="${cy.toFixed(1)}"
+          stroke="#2a1c08" stroke-width="1"/>`;
+      }
+
+      // Bars
+      for (let i = 0; i < 3; i++) {
+        const v  = iconAvg[i];
+        const bx = xPos(i) + gap;
+        const bw = barW - gap * 2;
+        const by = yPos(v);
+        const bh = barHt(v);
+        s += `<rect x="${bx.toFixed(1)}" y="${by.toFixed(1)}"
+          width="${bw.toFixed(1)}" height="${bh.toFixed(1)}"
+          fill="#c9952a" rx="2" style="cursor:default">
+          <title>Total: ${iconTotals[i]}</title>
+        </rect>`;
+        s += `<text x="${(bx + bw / 2).toFixed(1)}" y="${(by - 5).toFixed(1)}"
+          text-anchor="middle" font-family="sans-serif" font-size="10" fill="#a89060"
+          pointer-events="none">${v.toFixed(2)}</text>`;
+      }
+
+      // Axes
+      s += `<line x1="${mL}" y1="${mT}" x2="${mL}" y2="${mT + iH}" stroke="#4a3510" stroke-width="1"/>`;
+      s += `<line x1="${mL}" y1="${mT + iH}" x2="${W - mR}" y2="${mT + iH}" stroke="#4a3510" stroke-width="1"/>`;
+
+      // X-axis labels
+      for (let i = 0; i < 3; i++) {
+        const cx = (xPos(i) + barW / 2).toFixed(1);
+        s += `<text x="${cx}" y="${mT + iH + 18}"
+          text-anchor="middle" font-family="sans-serif" font-size="11" fill="#6a5030"
+          >${labels[i]}</text>`;
+      }
+
+      // Left Y-axis (averages)
+      for (const t of ticks) {
+        const cy = yPos(t).toFixed(1);
+        s += `<text x="${mL - 7}" y="${+cy + 4}"
+          text-anchor="end" font-family="sans-serif" font-size="10" fill="#6a5030"
+          >${t.toFixed(1)}</text>`;
+      }
+
+      // Axis title
+      s += `<text x="${mL - 36}" y="${(mT + iH / 2).toFixed(1)}"
+        text-anchor="middle" font-family="sans-serif" font-size="10" fill="#6a5030"
+        transform="rotate(-90,${mL - 36},${(mT + iH / 2).toFixed(1)})"
+        >avg / setup</text>`;
+
+      s += `</svg>`;
+      return s;
     }
 
     function renderHistogram(dist, title, labelFn) {
