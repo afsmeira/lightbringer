@@ -580,6 +580,14 @@
           <input type="range" id="cfg-min-cards" min="1" max="7" value="3">
           <span class="cfg-slider-val" id="cfg-min-cards-val">3</span>
         </div>
+        <div class="section-label" style="margin-top:0.4rem;">Restricted Cards</div>
+        <textarea
+          id="restricted-cards-input"
+          class="economy-textarea"
+          rows="2"
+          placeholder="Card names or IDs, one per line or comma-separated…"
+          spellcheck="false"
+        ></textarea>
       </div>
     </div>
   </div>
@@ -873,8 +881,10 @@
         const strengthDist  = new Array(31).fill(0); // indices 0-30 strength
         const keyCardsDist  = new Array(8).fill(0);  // indices 0-7 key cards
         const avoidableDist = new Array(8).fill(0);  // indices 0-7 avoidable cards
-        const keySet        = parseCardSet('key-cards-input');
-        const avoidSet      = parseCardSet('avoidable-cards-input');
+        const keySet            = parseCardSet('key-cards-input');
+        const avoidSet          = parseCardSet('avoidable-cards-input');
+        const restrictedSet     = parseCardSet('restricted-cards-input');
+        const filterRestricted  = hand => hand.filter(c => !cardInSet(c, restrictedSet));
         const iconTotals         = [0, 0, 0]; // [military, intrigue, power] character counts
         const iconStrengthTotals = [0, 0, 0]; // [military, intrigue, power] strength sums
         let   iconSetupCount = 0;
@@ -882,7 +892,7 @@
 
         for (let i = 0; i < SIM_COUNT; i++) {
           let hand         = drawHand(pool, 7);
-          let sorted       = sortSetups(allValidSetups(hand));
+          let sorted       = sortSetups(allValidSetups(filterRestricted(hand)));
           let best         = sorted.length > 0 ? sorted[0] : null;
           let tookMulligan = false;
 
@@ -891,7 +901,7 @@
             mulliganCount++;
             tookMulligan = true;
             hand   = drawHand(pool, 7);
-            sorted = sortSetups(allValidSetups(hand));
+            sorted = sortSetups(allValidSetups(filterRestricted(hand)));
             best   = sorted.length > 0 ? sorted[0] : null;
             if (best && !isPoorSetup(best.cards)) mulliganSuccessCount++;
           }
