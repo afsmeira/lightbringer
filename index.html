@@ -891,20 +891,21 @@
         const simLog = [];
 
         for (let i = 0; i < SIM_COUNT; i++) {
-          let hand         = drawHand(pool, 7);
-          let sorted       = sortSetups(allValidSetups(filterRestricted(hand)));
+          let initialHand  = drawHand(pool, 7);
+          let mulliganHand = null;
+          let sorted       = sortSetups(allValidSetups(filterRestricted(initialHand)));
           let best         = sorted.length > 0 ? sorted[0] : null;
-          let tookMulligan = false;
 
           // Mulligan if best setup is poor (or no setup at all)
           if (!best || isPoorSetup(best.cards)) {
             mulliganCount++;
-            tookMulligan = true;
-            hand   = drawHand(pool, 7);
-            sorted = sortSetups(allValidSetups(filterRestricted(hand)));
+            mulliganHand = drawHand(pool, 7);
+            sorted = sortSetups(allValidSetups(filterRestricted(mulliganHand)));
             best   = sorted.length > 0 ? sorted[0] : null;
             if (best && !isPoorSetup(best.cards)) mulliganSuccessCount++;
           }
+
+          const hand = mulliganHand ?? initialHand;
 
           if (isPoorSetup(best.cards)) poorCount++;
           goldDist[best.total]++;
@@ -925,7 +926,8 @@
           if (best.cards.some(c => c.is_economy)) economyCount++;
           if (best.cards.some(c => c.is_limited)) limitedCount++;
           simLog.push({
-            hand:     hand.map(c => ({ name: c.name, type: c.type_name })),
+            initialHand:  initialHand.map(c => ({ name: c.name, type: c.type_name })),
+            mulliganHand: mulliganHand ? mulliganHand.map(c => ({ name: c.name, type: c.type_name })) : null,
             setup:    best ? best.cards.map(c => ({
               name:        c.name,
               cost:        c.effectiveCost,
@@ -937,7 +939,6 @@
             })) : null,
             total:    best ? best.total : 0,
             poor:     !best || isPoorSetup(best.cards),
-            mulligan: tookMulligan,
           });
         }
 
@@ -998,12 +999,15 @@
       const SETUP_TYPES = new Set(['Character', 'Location', 'Attachment']);
       const sep = `<span class="sim-sep">·</span>`;
 
+      const renderCards = cards => cards.map(c =>
+        SETUP_TYPES.has(c.type)
+          ? c.name
+          : `<span class="sim-card-dim">${c.name}</span>`
+      ).join(sep);
+
       const rows = sample.map((sim, idx) => {
-        const handHtml = sim.hand.map(c =>
-          SETUP_TYPES.has(c.type)
-            ? c.name
-            : `<span class="sim-card-dim">${c.name}</span>`
-        ).join(sep);
+        const initialHtml  = renderCards(sim.initialHand);
+        const mulliganHtml = sim.mulliganHand ? renderCards(sim.mulliganHand) : null;
 
         const setupHtml = sim.setup
           ? sim.setup.map(c => {
@@ -1020,16 +1024,16 @@
           ? `Chosen Setup <span class="sim-setup-total">(${sim.total}g)</span>`
           : `Chosen Setup`;
 
-        const badges = `
+        const badges = sim.poor ? `
             <div class="sim-row-badges">
               <span class="sim-row-label">Labels</span>
-              ${sim.poor     ? '<span class="sim-badge poor" title="This setup is considered to be poor according to configuration">poor</span>'         : ''}
-              ${sim.mulligan ? '<span class="sim-badge mulligan" title="This setup was the result of a mulligan">mulligan</span>' : ''}
-            </div>`;
+              <span class="sim-badge poor" title="This setup is considered to be poor according to configuration">poor</span>
+            </div>` : '';
 
         return `
           <div class="sim-row">
-            <div class="sim-hand"><span class="sim-row-label">Initial Draw</span>${handHtml}</div>
+            <div class="sim-hand"><span class="sim-row-label">Initial Draw</span>${initialHtml}</div>
+            ${mulliganHtml ? `<div class="sim-hand"><span class="sim-row-label">Mulligan Draw</span>${mulliganHtml}</div>` : ''}
             <div class="sim-setup"><span class="sim-row-label">${setupLabel}</span>${setupHtml}</div>
             ${badges}
           </div>`;
