@@ -774,7 +774,8 @@
       setTimeout(() => {
         const pool = buildDeckPool(currentSlots, currentCardMap);
         let poorCount = 0, economyCount = 0, limitedCount = 0, mulliganCount = 0, mulliganSuccessCount = 0;
-        const goldDist = new Array(SETUP_GOLD + 1).fill(0);
+        const goldDist  = new Array(SETUP_GOLD + 1).fill(0);
+        const cardsDist = new Array(8).fill(0);  // indices 0-7 cards
 
         for (let i = 0; i < SIM_COUNT; i++) {
           let hand   = drawHand(pool, 7);
@@ -782,22 +783,22 @@
           let best   = sorted.length > 0 ? sorted[0] : null;
 
           // Mulligan if best setup is poor (or no setup at all)
-          if (!best || isPoorSetup(best.cards)) {
+          if (isPoorSetup(best.cards)) {
             mulliganCount++;
             hand   = drawHand(pool, 7);
             sorted = sortSetups(allValidSetups(hand));
             best   = sorted.length > 0 ? sorted[0] : null;
-            if (best && !isPoorSetup(best.cards)) mulliganSuccessCount++;
+            if (!isPoorSetup(best.cards)) mulliganSuccessCount++;
           }
 
-          if (!best || isPoorSetup(best.cards)) { poorCount++; continue; }
-
+          if (isPoorSetup(best.cards)) poorCount++;
           goldDist[best.total]++;
+          cardsDist[best.cards.length]++;
           if (best.cards.some(c => c.is_economy)) economyCount++;
           if (best.cards.some(c => c.is_limited)) limitedCount++;
         }
 
-        renderStats(poorCount, economyCount, limitedCount, mulliganCount, mulliganSuccessCount, goldDist);
+        renderStats(poorCount, economyCount, limitedCount, mulliganCount, mulliganSuccessCount, goldDist, cardsDist);
         btn.disabled = false;
 
         document.getElementById('config-section').style.display = 'block';
@@ -805,7 +806,7 @@
       }, 0);
     }
 
-    function renderStats(poorCount, economyCount, limitedCount, mulliganCount, mulliganSuccessCount, goldDist) {
+    function renderStats(poorCount, economyCount, limitedCount, mulliganCount, mulliganSuccessCount, goldDist, cardsDist) {
       const pct = v => `${Math.round(v / SIM_COUNT * 100)}%`;
       const mulliganPct = mulliganCount > 0 ? `${Math.round(mulliganSuccessCount / mulliganCount * 100)}% of mulligans` : 'n/a';
       document.getElementById('stats-display').innerHTML = `
@@ -836,13 +837,14 @@
             <div class="stat-label">Successful Mulligans</div>
           </div>
         </div>
-        ${renderHistogram(goldDist)}`;
+        ${renderHistogram(cardsDist, 'Cards per Setup', i => String(i))}
+        ${renderHistogram(goldDist,  'Gold Distribution', i => `${i}g`)}`;
     }
 
-    function renderHistogram(goldDist) {
-      const maxVal = Math.max(...goldDist, 1);
+    function renderHistogram(dist, title, labelFn) {
+      const maxVal = Math.max(...dist, 1);
       // Round yMax up to a clean multiple for neat tick spacing
-      const rawStep = maxVal / 4;
+      const rawStep  = maxVal / 4;
       const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
       const niceStep  = Math.ceil(rawStep / magnitude) * magnitude;
       const yMax      = niceStep * 4;
@@ -850,14 +852,14 @@
 
       const mL = 48, mR = 48, mT = 20, mB = 36;
       const W  = 580, H  = 190;
-      const iW = W - mL - mR;   // inner width
-      const iH = H - mT - mB;   // inner height
+      const iW = W - mL - mR;
+      const iH = H - mT - mB;
 
-      const barW  = iW / (SETUP_GOLD + 1);
+      const barW  = iW / dist.length;
       const gap   = barW * 0.18;
-      const xPos  = i  => mL + i * barW;
-      const yPos  = v  => mT + iH - (v / yMax) * iH;
-      const barHt = v  => (v / yMax) * iH;
+      const xPos  = i => mL + i * barW;
+      const yPos  = v => mT + iH - (v / yMax) * iH;
+      const barHt = v => (v / yMax) * iH;
 
       let s = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg"
         style="width:100%;display:block;margin-top:1.5rem;overflow:visible">`;
@@ -865,7 +867,7 @@
       // Chart title
       s += `<text x="${(W / 2).toFixed(1)}" y="${mT - 6}"
         text-anchor="middle" font-family="sans-serif" font-size="12" fill="#a89060"
-        letter-spacing="0.05em">Gold Distribution</text>`;
+        letter-spacing="0.05em">${title}</text>`;
 
       // Horizontal grid lines
       for (const t of ticks) {
@@ -875,12 +877,12 @@
       }
 
       // Bars
-      for (let i = 0; i <= SETUP_GOLD; i++) {
-        const v  = goldDist[i] || 0;
-        const bx = xPos(i) + gap;
-        const bw = barW - gap * 2;
-        const by = yPos(v);
-        const bh = barHt(v);
+      for (let i = 0; i < dist.length; i++) {
+        const v   = dist[i] || 0;
+        const bx  = xPos(i) + gap;
+        const bw  = barW - gap * 2;
+        const by  = yPos(v);
+        const bh  = barHt(v);
         const pct = Math.round(v / SIM_COUNT * 100);
         s += `<rect x="${bx.toFixed(1)}" y="${by.toFixed(1)}"
           width="${bw.toFixed(1)}" height="${bh.toFixed(1)}"
@@ -899,12 +901,13 @@
       s += `<line x1="${W - mR}" y1="${mT}" x2="${W - mR}" y2="${mT + iH}" stroke="#4a3510" stroke-width="1"/>`;
       s += `<line x1="${mL}" y1="${mT + iH}" x2="${W - mR}" y2="${mT + iH}" stroke="#4a3510" stroke-width="1"/>`;
 
-      // X-axis labels
-      for (let i = 0; i <= SETUP_GOLD; i++) {
+      // X-axis labels (only for indices with at least one setup)
+      for (let i = 0; i < dist.length; i++) {
+        if (!dist[i]) continue;
         const cx = (xPos(i) + barW / 2).toFixed(1);
         s += `<text x="${cx}" y="${mT + iH + 18}"
           text-anchor="middle" font-family="sans-serif" font-size="11" fill="#6a5030"
-          >${i}g</text>`;
+          >${labelFn(i)}</text>`;
       }
 
       // Left Y-axis (counts)
