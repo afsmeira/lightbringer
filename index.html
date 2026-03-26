@@ -776,6 +776,7 @@
         let poorCount = 0, economyCount = 0, limitedCount = 0, mulliganCount = 0, mulliganSuccessCount = 0;
         const goldDist     = new Array(SETUP_GOLD + 1).fill(0);
         const cardsDist    = new Array(8).fill(0);  // indices 0-7 cards
+        const charsDist    = new Array(8).fill(0);  // indices 0-7 distinct characters
         const strengthDist = new Array(31).fill(0); // indices 0-30 strength
 
         for (let i = 0; i < SIM_COUNT; i++) {
@@ -795,15 +796,15 @@
           if (isPoorSetup(best.cards)) poorCount++;
           goldDist[best.total]++;
           cardsDist[best.cards.length]++;
-          const totalStr = best.cards
-            .filter(c => c.type_name === 'Character' && !c.isDuplicate)
-            .reduce((sum, c) => sum + (c.strength || 0), 0);
+          const distinctChars = best.cards.filter(c => c.type_name === 'Character' && !c.isDuplicate);
+          charsDist[distinctChars.length]++;
+          const totalStr = distinctChars.reduce((sum, c) => sum + (c.strength || 0), 0);
           if (totalStr < strengthDist.length) strengthDist[totalStr]++;
           if (best.cards.some(c => c.is_economy)) economyCount++;
           if (best.cards.some(c => c.is_limited)) limitedCount++;
         }
 
-        renderStats(poorCount, economyCount, limitedCount, mulliganCount, mulliganSuccessCount, goldDist, cardsDist, strengthDist);
+        renderStats(poorCount, economyCount, limitedCount, mulliganCount, mulliganSuccessCount, goldDist, cardsDist, charsDist, strengthDist);
         btn.disabled = false;
 
         document.getElementById('config-section').style.display = 'block';
@@ -811,7 +812,7 @@
       }, 0);
     }
 
-    function renderStats(poorCount, economyCount, limitedCount, mulliganCount, mulliganSuccessCount, goldDist, cardsDist, strengthDist) {
+    function renderStats(poorCount, economyCount, limitedCount, mulliganCount, mulliganSuccessCount, goldDist, cardsDist, charsDist, strengthDist) {
       const pct = v => `${Math.round(v / SIM_COUNT * 100)}%`;
       const mulliganPct = mulliganCount > 0 ? `${Math.round(mulliganSuccessCount / mulliganCount * 100)}% of mulligans` : 'n/a';
       document.getElementById('stats-display').innerHTML = `
@@ -842,14 +843,17 @@
             <div class="stat-label">Successful Mulligans</div>
           </div>
         </div>
-        ${renderHistogram(cardsDist, 'Cards per Setup',   i => String(i))}
+        ${renderHistogram(cardsDist, 'Total Cards',   i => String(i))}
         ${renderHistogram(goldDist,  'Gold Distribution', i => `${i}g`)}
-        ${(() => {
-          const first = strengthDist.findIndex(v => v > 0);
-          const last  = strengthDist.length - 1 - [...strengthDist].reverse().findIndex(v => v > 0);
-          const trimmed = strengthDist.slice(first, last + 1);
-          return renderHistogram(trimmed, 'Character Strength', i => String(i + first));
-        })()}`;
+        ${trimAndRender(charsDist,    'Distinct Characters', i => String(i))}
+        ${trimAndRender(strengthDist, 'Character Strength',  i => String(i))}`;
+    }
+
+    function trimAndRender(dist, title, labelFn) {
+      const first   = dist.findIndex(v => v > 0);
+      const last    = dist.length - 1 - [...dist].reverse().findIndex(v => v > 0);
+      const trimmed = dist.slice(first, last + 1);
+      return renderHistogram(trimmed, title, i => labelFn(i + first));
     }
 
     function renderHistogram(dist, title, labelFn) {
