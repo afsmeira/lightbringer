@@ -773,21 +773,29 @@
       // Defer to next frame so the browser can repaint before the heavy loop
       setTimeout(() => {
         const pool = buildDeckPool(currentSlots, currentCardMap);
-        let poorCount = 0, economyCount = 0, limitedCount = 0;
+        let poorCount = 0, economyCount = 0, limitedCount = 0, mulliganCount = 0, mulliganSuccessCount = 0;
 
         for (let i = 0; i < SIM_COUNT; i++) {
-          const hand   = drawHand(pool, 7);
-          const sorted = sortSetups(allValidSetups(hand));
+          let hand   = drawHand(pool, 7);
+          let sorted = sortSetups(allValidSetups(hand));
+          let best   = sorted.length > 0 ? sorted[0] : null;
 
-          if (sorted.length === 0) { poorCount++; continue; }
+          // Mulligan if best setup is poor (or no setup at all)
+          if (!best || isPoorSetup(best.cards)) {
+            mulliganCount++;
+            hand   = drawHand(pool, 7);
+            sorted = sortSetups(allValidSetups(hand));
+            best   = sorted.length > 0 ? sorted[0] : null;
+            if (best && !isPoorSetup(best.cards)) mulliganSuccessCount++;
+          }
 
-          const { cards } = sorted[0];
-          if (isPoorSetup(cards))            poorCount++;
-          if (cards.some(c => c.is_economy)) economyCount++;
-          if (cards.some(c => c.is_limited)) limitedCount++;
+          if (!best || isPoorSetup(best.cards)) { poorCount++; continue; }
+
+          if (best.cards.some(c => c.is_economy)) economyCount++;
+          if (best.cards.some(c => c.is_limited)) limitedCount++;
         }
 
-        renderStats(poorCount, economyCount, limitedCount);
+        renderStats(poorCount, economyCount, limitedCount, mulliganCount, mulliganSuccessCount);
         btn.disabled = false;
 
         document.getElementById('config-section').style.display = 'block';
@@ -795,8 +803,9 @@
       }, 0);
     }
 
-    function renderStats(poorCount, economyCount, limitedCount) {
+    function renderStats(poorCount, economyCount, limitedCount, mulliganCount, mulliganSuccessCount) {
       const pct = v => `${Math.round(v / SIM_COUNT * 100)}%`;
+      const mulliganPct = mulliganCount > 0 ? `${Math.round(mulliganSuccessCount / mulliganCount * 100)}% of mulligans` : 'n/a';
       document.getElementById('stats-display').innerHTML = `
         <div class="stats-grid">
           <div class="stat-card poor">
@@ -813,6 +822,16 @@
             <div class="stat-value">${limitedCount}</div>
             <div class="stat-pct">${pct(limitedCount)} of ${SIM_COUNT}</div>
             <div class="stat-label">With Limited Card</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${mulliganCount}</div>
+            <div class="stat-pct">${pct(mulliganCount)} of ${SIM_COUNT}</div>
+            <div class="stat-label">Mulligans Taken</div>
+          </div>
+          <div class="stat-card good">
+            <div class="stat-value">${mulliganSuccessCount}</div>
+            <div class="stat-pct">${mulliganPct}</div>
+            <div class="stat-label">Successful Mulligans</div>
           </div>
         </div>`;
     }
