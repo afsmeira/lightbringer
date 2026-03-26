@@ -355,6 +355,56 @@
       border-left: 3px solid #d9534f;
       background: #1e0a0a;
     }
+
+    /* Stats */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-top: 0.25rem;
+    }
+
+    .stat-card {
+      background: #120c04;
+      border: 1px solid #3a2808;
+      border-radius: 5px;
+      padding: 1rem 0.75rem;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 2.2rem;
+      font-weight: bold;
+      color: #c9952a;
+      font-family: sans-serif;
+      line-height: 1;
+    }
+
+    .stat-pct {
+      font-size: 0.85rem;
+      color: #a89060;
+      font-family: sans-serif;
+      margin-top: 0.2rem;
+    }
+
+    .stat-label {
+      font-size: 0.72rem;
+      color: #6a5030;
+      margin-top: 0.35rem;
+      font-family: sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .stat-card.poor .stat-value { color: #d9534f; }
+    .stat-card.good .stat-value { color: #5cb85c; }
+
+    .sim-running {
+      color: #a89060;
+      font-size: 0.88rem;
+      font-style: italic;
+      padding: 1rem 0;
+    }
   </style>
 </head>
 <body>
@@ -445,16 +495,12 @@
       <div class="panel-header">
         <div>
           <div class="panel-title">Setup Simulator</div>
-          <div class="panel-subtitle" id="setup-subtitle">All valid plays from a 7-card draw (≤ 8 gold)</div>
+          <div class="panel-subtitle">Best setup across 5000 simulated hands</div>
         </div>
-        <button onclick="simulateSetup()">Draw Again</button>
+        <button id="sim-btn" onclick="runSimulations()">Run Simulations</button>
       </div>
 
-      <div class="section-label">Hand</div>
-      <div class="hand-grid" id="hand-display"></div>
-
-      <div class="section-label" id="setups-label">Valid setups</div>
-      <div class="setups-list" id="setups-display"></div>
+      <div id="stats-display"></div>
     </div>
   </div>
 
@@ -468,7 +514,6 @@
     let cachedCards    = null;
     let currentSlots   = null;   // { code: qty, … } for active deck
     let currentCardMap = null;
-    let currentHand    = null;
 
     // ── Utilities ────────────────────────────────────────────────────────────
 
@@ -587,7 +632,7 @@
         currentSlots   = decklist.slots || {};
         currentCardMap = cardMap;
 
-        simulateSetup();
+        runSimulations();
         setStatus(`Analyzed "${decklist.name || deckId}" — ${Object.keys(currentSlots).length} card types in deck.`, 'success');
       } catch (err) {
         setStatus(`Error: ${err.message}`, 'error');
@@ -716,78 +761,60 @@
       });
     }
 
-    function simulateSetup() {
+    const SIM_COUNT = 5000;
+
+    function runSimulations() {
       if (!currentSlots || !currentCardMap) return;
 
-      const pool = buildDeckPool(currentSlots, currentCardMap);
-      currentHand = drawHand(pool, 7);
-      const setups = allValidSetups(currentHand);
+      const btn = document.getElementById('sim-btn');
+      btn.disabled = true;
+      document.getElementById('stats-display').innerHTML = '<div class="sim-running">Running simulations…</div>';
 
-      renderHand(currentHand);
-      renderSetups(setups);
+      // Defer to next frame so the browser can repaint before the heavy loop
+      setTimeout(() => {
+        const pool = buildDeckPool(currentSlots, currentCardMap);
+        let poorCount = 0, economyCount = 0, limitedCount = 0;
 
-      document.getElementById('config-section').style.display = 'block';
-      document.getElementById('setup-section').style.display = 'block';
-    }
+        for (let i = 0; i < SIM_COUNT; i++) {
+          const hand   = drawHand(pool, 7);
+          const sorted = sortSetups(allValidSetups(hand));
 
-    function typeBadgeClass(typeName) {
-      if (SETUP_TYPES.has(typeName)) return typeName;
-      if (typeName === 'Event') return 'Event';
-      return 'other';
-    }
+          if (sorted.length === 0) { poorCount++; continue; }
 
-    function renderHand(hand) {
-      const uniqueSeen = new Set();
-      const el = document.getElementById('hand-display');
-      el.innerHTML = hand.map(card => {
-        const isSetup = SETUP_TYPES.has(card.type_name) && cardCost(card) !== null;
-        const cost    = cardCost(card);
-        const cls     = typeBadgeClass(card.type_name);
-
-        let isDup = false;
-        if (isSetup && card.is_unique) {
-          if (uniqueSeen.has(card.code)) isDup = true;
-          else uniqueSeen.add(card.code);
+          const { cards } = sorted[0];
+          if (isPoorSetup(cards))            poorCount++;
+          if (cards.some(c => c.is_economy)) economyCount++;
+          if (cards.some(c => c.is_limited)) limitedCount++;
         }
 
-        const costTag = !isSetup   ? ''
-          : isDup                  ? `<span class="cost-pill dup-pill">dup</span>`
-          :                          `<span class="cost-pill">${cost}g</span>`;
+        renderStats(poorCount, economyCount, limitedCount);
+        btn.disabled = false;
 
-        return `
-          <div class="hand-card${isSetup ? '' : ' non-setup'}">
-            <span class="type-badge ${cls}">${card.type_name || '?'}</span>
-            <span>${card.name}</span>
-            ${costTag}
-          </div>`;
-      }).join('');
+        document.getElementById('config-section').style.display = 'block';
+        document.getElementById('setup-section').style.display = 'block';
+      }, 0);
     }
 
-    function renderSetups(setups) {
-      const label = document.getElementById('setups-label');
-      const el    = document.getElementById('setups-display');
-      setups = sortSetups(setups);
-
-      label.textContent = `Valid setups (${setups.length})`;
-
-      if (setups.length === 0) {
-        el.innerHTML = '<div class="no-setups">No valid setup from this draw.</div>';
-        return;
-      }
-
-      el.innerHTML = setups.map(({ cards, total }) => {
-        const names = cards.map(c => {
-          const costTag = c.isDuplicate
-            ? `<span class="dup-label">dup</span>`
-            : `<span style="color:#6a5030;font-size:0.75rem">${c.effectiveCost}g</span>`;
-          return `<span class="combo-card-name">${c.name} ${costTag}</span>`;
-        }).join('');
-        return `
-          <div class="setup-combo${isPoorSetup(cards) ? ' poor' : ''}">
-            <div class="combo-cards">${names}</div>
-            <div class="combo-total">${total} / ${SETUP_GOLD}g</div>
-          </div>`;
-      }).join('');
+    function renderStats(poorCount, economyCount, limitedCount) {
+      const pct = v => `${Math.round(v / SIM_COUNT * 100)}%`;
+      document.getElementById('stats-display').innerHTML = `
+        <div class="stats-grid">
+          <div class="stat-card poor">
+            <div class="stat-value">${poorCount}</div>
+            <div class="stat-pct">${pct(poorCount)} of ${SIM_COUNT}</div>
+            <div class="stat-label">Poor Setups</div>
+          </div>
+          <div class="stat-card good">
+            <div class="stat-value">${economyCount}</div>
+            <div class="stat-pct">${pct(economyCount)} of ${SIM_COUNT}</div>
+            <div class="stat-label">With Economy</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${limitedCount}</div>
+            <div class="stat-pct">${pct(limitedCount)} of ${SIM_COUNT}</div>
+            <div class="stat-label">With Limited Card</div>
+          </div>
+        </div>`;
     }
 
     document.getElementById('deck-url').addEventListener('keydown', e => {
@@ -795,9 +822,8 @@
     });
 
     function rerender() {
-      if (!currentHand) return;
-      renderHand(currentHand);
-      renderSetups(allValidSetups(currentHand));
+      if (!currentSlots) return;
+      runSimulations();
     }
 
     document.getElementById('economy-input').addEventListener('input', () => {
