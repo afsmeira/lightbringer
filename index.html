@@ -433,6 +433,7 @@
     <div class="panel">
       <div class="panel-header">
         <div><div class="panel-title">Analyzer Configuration</div></div>
+        <button id="sim-btn" onclick="runSimulations()">Run Simulations</button>
       </div>
 
       <div class="section-label">Economy Cards</div>
@@ -497,7 +498,6 @@
           <div class="panel-title">Setup Simulator</div>
           <div class="panel-subtitle">Best setup across 5000 simulated hands</div>
         </div>
-        <button id="sim-btn" onclick="runSimulations()">Run Simulations</button>
       </div>
 
       <div id="stats-display"></div>
@@ -774,10 +774,14 @@
       setTimeout(() => {
         const pool = buildDeckPool(currentSlots, currentCardMap);
         let poorCount = 0, economyCount = 0, limitedCount = 0, mulliganCount = 0, mulliganSuccessCount = 0;
-        const goldDist     = new Array(SETUP_GOLD + 1).fill(0);
-        const cardsDist    = new Array(8).fill(0);  // indices 0-7 cards
-        const charsDist    = new Array(8).fill(0);  // indices 0-7 distinct characters
-        const strengthDist = new Array(31).fill(0); // indices 0-30 strength
+        const goldDist      = new Array(SETUP_GOLD + 1).fill(0);
+        const cardsDist     = new Array(8).fill(0);  // indices 0-7 cards
+        const charsDist     = new Array(8).fill(0);  // indices 0-7 distinct characters
+        const strengthDist  = new Array(31).fill(0); // indices 0-30 strength
+        const keyCardsDist  = new Array(8).fill(0);  // indices 0-7 key cards
+        const avoidableDist = new Array(8).fill(0);  // indices 0-7 avoidable cards
+        const keySet        = parseCardSet('key-cards-input');
+        const avoidSet      = parseCardSet('avoidable-cards-input');
 
         for (let i = 0; i < SIM_COUNT; i++) {
           let hand   = drawHand(pool, 7);
@@ -800,11 +804,13 @@
           charsDist[distinctChars.length]++;
           const totalStr = distinctChars.reduce((sum, c) => sum + (c.strength || 0), 0);
           if (totalStr < strengthDist.length) strengthDist[totalStr]++;
+          keyCardsDist[best.cards.filter(c => cardInSet(c, keySet)).length]++;
+          avoidableDist[best.cards.filter(c => cardInSet(c, avoidSet)).length]++;
           if (best.cards.some(c => c.is_economy)) economyCount++;
           if (best.cards.some(c => c.is_limited)) limitedCount++;
         }
 
-        renderStats(poorCount, economyCount, limitedCount, mulliganCount, mulliganSuccessCount, goldDist, cardsDist, charsDist, strengthDist);
+        renderStats(poorCount, economyCount, limitedCount, mulliganCount, mulliganSuccessCount, goldDist, cardsDist, charsDist, strengthDist, keyCardsDist, avoidableDist);
         btn.disabled = false;
 
         document.getElementById('config-section').style.display = 'block';
@@ -812,7 +818,7 @@
       }, 0);
     }
 
-    function renderStats(poorCount, economyCount, limitedCount, mulliganCount, mulliganSuccessCount, goldDist, cardsDist, charsDist, strengthDist) {
+    function renderStats(poorCount, economyCount, limitedCount, mulliganCount, mulliganSuccessCount, goldDist, cardsDist, charsDist, strengthDist, keyCardsDist, avoidableDist) {
       const pct = v => `${Math.round(v / SIM_COUNT * 100)}%`;
       const mulliganPct = mulliganCount > 0 ? `${Math.round(mulliganSuccessCount / mulliganCount * 100)}% of mulligans` : 'n/a';
       document.getElementById('stats-display').innerHTML = `
@@ -843,10 +849,12 @@
             <div class="stat-label">Successful Mulligans</div>
           </div>
         </div>
-        ${renderHistogram(cardsDist, 'Total Cards',   i => String(i))}
-        ${renderHistogram(goldDist,  'Gold Distribution', i => `${i}g`)}
-        ${trimAndRender(charsDist,    'Distinct Characters', i => String(i))}
-        ${trimAndRender(strengthDist, 'Character Strength',  i => String(i))}`;
+        ${trimAndRender(cardsDist, 'Total Cards',   i => String(i))}
+        ${trimAndRender(goldDist,  'Gold Distribution', i => `${i}g`)}
+        ${trimAndRender(charsDist,     'Distinct Characters',  i => String(i))}
+        ${trimAndRender(strengthDist,  'Character Strength',   i => String(i))}
+        ${trimAndRender(keyCardsDist,  'Key Cards',  i => String(i))}
+        ${trimAndRender(avoidableDist, 'Avoidable Cards', i => String(i))}`;
     }
 
     function trimAndRender(dist, title, labelFn) {
@@ -960,30 +968,10 @@
       if (e.key === 'Enter') analyze();
     });
 
-    function rerender() {
-      if (!currentSlots) return;
-      runSimulations();
-    }
-
-    document.getElementById('economy-input').addEventListener('input', () => {
-      updateEconomyFlags();
-      rerender();
-    });
-
-    ['cfg-two-chars', 'cfg-four-cost', 'cfg-economy'].forEach(id => {
-      document.getElementById(id).addEventListener('change', rerender);
-    });
-
-    document.getElementById('cfg-key-cards').addEventListener('change', rerender);
-
-    document.getElementById('cfg-no-avoidable').addEventListener('change', rerender);
-
-    document.getElementById('key-cards-input').addEventListener('input', rerender);
-    document.getElementById('avoidable-cards-input').addEventListener('input', rerender);
+    document.getElementById('economy-input').addEventListener('input', updateEconomyFlags);
 
     document.getElementById('cfg-min-cards').addEventListener('input', function () {
       document.getElementById('cfg-min-cards-val').textContent = this.value;
-      rerender();
     });
   </script>
 
