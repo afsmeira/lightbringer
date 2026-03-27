@@ -875,6 +875,7 @@
       setTimeout(() => {
         const pool = buildDeckPool(currentSlots, currentCardMap);
         let poorCount = 0, economyCount = 0, limitedCount = 0, mulliganCount = 0, mulliganSuccessCount = 0;
+        let totalGold = 0, totalCards = 0;
         const goldDist      = new Array(SETUP_GOLD + 1).fill(0);
         const cardsDist     = new Array(8).fill(0);  // indices 0-7 cards
         const charsDist     = new Array(8).fill(0);  // indices 0-7 distinct characters
@@ -910,6 +911,8 @@
           if (isPoorSetup(best.cards)) poorCount++;
           goldDist[best.total]++;
           cardsDist[best.cards.length]++;
+          totalGold  += best.total;
+          totalCards += best.cards.length;
           const distinctChars = best.cards.filter(c => c.type_name === 'Character' && !c.isDuplicate);
           charsDist[distinctChars.length]++;
           const totalStr = distinctChars.reduce((sum, c) => sum + (c.strength || 0), 0);
@@ -944,7 +947,9 @@
 
         const iconAvg         = iconTotals.map(t => iconSetupCount > 0 ? t / iconSetupCount : 0);
         const iconStrengthAvg = iconStrengthTotals.map(t => iconSetupCount > 0 ? t / iconSetupCount : 0);
-        renderStats(poorCount, economyCount, limitedCount, mulliganCount, mulliganSuccessCount, goldDist, cardsDist, charsDist, strengthDist, keyCardsDist, avoidableDist, iconAvg, iconTotals, iconStrengthAvg, iconStrengthTotals, simLog);
+        const avgGold  = (totalGold  / SIM_COUNT).toFixed(2);
+        const avgCards = (totalCards / SIM_COUNT).toFixed(2);
+        renderStats(poorCount, economyCount, limitedCount, mulliganCount, mulliganSuccessCount, avgGold, avgCards, goldDist, cardsDist, charsDist, strengthDist, keyCardsDist, avoidableDist, iconAvg, iconTotals, iconStrengthAvg, iconStrengthTotals, simLog);
         btn.disabled = false;
 
         document.getElementById('config-section').style.display = 'block';
@@ -952,7 +957,7 @@
       }, 0);
     }
 
-    function renderStats(poorCount, economyCount, limitedCount, mulliganCount, mulliganSuccessCount, goldDist, cardsDist, charsDist, strengthDist, keyCardsDist, avoidableDist, iconAvg, iconTotals, iconStrengthAvg, iconStrengthTotals, simLog) {
+    function renderStats(poorCount, economyCount, limitedCount, mulliganCount, mulliganSuccessCount, avgGold, avgCards, goldDist, cardsDist, charsDist, strengthDist, keyCardsDist, avoidableDist, iconAvg, iconTotals, iconStrengthAvg, iconStrengthTotals, simLog) {
       const pct = v => `${Math.round(v / SIM_COUNT * 100)}%`;
       const mulliganPct = mulliganCount > 0 ? `${Math.round(mulliganSuccessCount / mulliganCount * 100)}% of mulligans` : 'n/a';
       document.getElementById('stats-display').innerHTML = `
@@ -981,6 +986,16 @@
             <div class="stat-value">${mulliganSuccessCount}</div>
             <div class="stat-pct">${mulliganPct}</div>
             <div class="stat-label">Successful Mulligans</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${avgGold}</div>
+            <div class="stat-pct">avg per setup</div>
+            <div class="stat-label">Average Gold</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${avgCards}</div>
+            <div class="stat-pct">avg per setup</div>
+            <div class="stat-label">Average Cards</div>
           </div>
         </div>
         ${trimAndRender(cardsDist, 'Total Cards',   i => String(i))}
