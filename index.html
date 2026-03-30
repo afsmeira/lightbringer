@@ -504,15 +504,33 @@
 
   <header>
     <h1>Lightbringer</h1>
-    <p>ThronesDB Deck Analyzer</p>
+    <p>A setup analyzer for A Game Of Thrones: Card Game - 2nd Edition</p>
   </header>
 
   <div class="panel" style="width:100%; max-width:680px; margin: 2rem auto 0;">
-    <div class="panel-header">
-      <div><div class="panel-title">Configuration</div></div>
-    </div>
+    <details>
+      <summary style="cursor:pointer; color:#c9952a; font-size:1.1rem; font-family:'Georgia',serif; letter-spacing:0.03em; user-select:none;">How it works</summary>
+      <p style="font-size:0.85rem; color:#a89060; line-height:1.7; margin-top:0.75rem; margin-bottom:0.75rem;">
+        Lightbringer analyzes the setups for a <em>A Game of Thrones: The Card Game - 2nd Edition</em> deck.
+        Paste a <a href="https://thronesdb.com">ThronesDB</a> deck URL and click <strong>Analyze</strong> to test the setup of <strong>5000 opening hands</strong>.
+      </p>
+      <p style="font-size:0.85rem; color:#a89060; line-height:1.7; margin-bottom:0.75rem;">
+        For each hand, every valid setup is evaluated.
+        The <strong>best setup</strong> is selected according to a ranking that prioritises: avoiding poor setups,
+        maximising card count, key cards, virtual gold (cost + income), limited cards, and character strength.
+        If the best setup is considered <strong>poor</strong> (failing any configured requirement), a
+        <strong>mulligan</strong> is taken — a fresh hand is drawn and evaluated once more.
+      </p>
+      <p style="font-size:0.85rem; color:#a89060; line-height:1.7;">
+        The results include summary statistics, several distribution charts, and a log of the first 100 simulated hands.
+        Use the <strong>Configuration</strong> section below to define what counts as a poor setup, and to mark
+        economy, key, avoidable, and restricted cards.
+      </p>
+    </details>
+  </div>
 
-    <div class="section-label">Deck</div>
+  <div class="card" style="margin-top:1.5rem; margin-bottom:0;">
+    <label for="deck-url">ThronesDB Deck URL</label>
     <div class="input-row">
       <input
         type="text"
@@ -524,8 +542,14 @@
       <button id="analyze-btn" onclick="analyze()">Analyze</button>
     </div>
     <div id="status"></div>
+  </div>
 
-    <div class="config-controls" style="margin-top:0.75rem;">
+  <div class="panel" style="width:100%; max-width:680px; margin-top:1.5rem;">
+    <div class="panel-header">
+      <div><div class="panel-title">Configuration</div></div>
+    </div>
+
+    <div class="config-controls">
       <label class="cfg-check">
         <input type="checkbox" id="cfg-two-chars" checked>
         Require at least 2 characters
