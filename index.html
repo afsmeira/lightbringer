@@ -761,7 +761,6 @@
       } catch (err) {
         setStatus(`Error: ${err.message}`, 'error');
         console.error(err);
-      } finally {
         btn.disabled = false;
       }
     }
@@ -973,9 +972,9 @@
         const avgGold  = (totalGold  / SIM_COUNT).toFixed(2);
         const avgCards = (totalCards / SIM_COUNT).toFixed(2);
         renderStats(poorCount, economyCount, limitedCount, mulliganCount, mulliganSuccessCount, avgGold, avgCards, goldDist, cardsDist, charsDist, strengthDist, keyCardsDist, avoidableDist, iconAvg, iconTotals, iconStrengthAvg, iconStrengthTotals, simLog);
-        btn.disabled = false;
 
         document.getElementById('setup-section').style.display = 'block';
+        btn.disabled = false;
         document.getElementById('setup-section').scrollIntoView({ behavior: 'smooth' });
       }, 0);
     }
