@@ -141,7 +141,7 @@
       font-family: sans-serif;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      color: #6a5030;
+      color: #c8b880;
       margin-bottom: 0.6rem;
     }
 
@@ -545,39 +545,39 @@
   </div>
 
   <div class="panel" style="width:100%; max-width:680px; margin-top:1.5rem;">
-    <div class="panel-header">
-      <div><div class="panel-title">Configuration</div></div>
-    </div>
+    <details open>
+      <summary style="cursor:pointer; color:#c9952a; font-size:1.1rem; font-family:'Georgia',serif; letter-spacing:0.03em; user-select:none;">Configuration</summary>
 
-    <div class="config-controls">
+    <div class="config-controls" style="margin-top:1rem;">
+      <label>A setup is considered poor if:</label>
       <label class="cfg-check">
         <input type="checkbox" id="cfg-two-chars" checked>
-        Require at least 2 characters
+        It has less than 2 characters
       </label>
       <label class="cfg-check">
         <input type="checkbox" id="cfg-four-cost">
-        Require a 4+ cost character
+        It has no 4+ cost character
       </label>
       <label class="cfg-check">
         <input type="checkbox" id="cfg-economy" checked>
-        Require economy
+        <span>It has no economy cards <span style="color:#6a5030; font-size:0.8rem;">— A card is considered an economy card if it's limited, provides income or is specified in the list below.</span></span>
       </label>
       <label class="cfg-check">
         <input type="checkbox" id="cfg-key-cards">
-        Require key card
+        <span>It has no key cards <span style="color:#6a5030; font-size:0.8rem;">— A key card is crucial for the deck and you want to see it on setup. Specify these cards below.</span></span>
       </label>
       <label class="cfg-check">
         <input type="checkbox" id="cfg-no-avoidable">
-        Require no avoidable cards
+        <span>It has avoidable cards <span style="color:#6a5030; font-size:0.8rem;">— A card is considered avoidable if it has an effect that won't trigger if it's played on setup. Specify these cards below.</span></span>
       </label>
       <div class="cfg-slider-row">
-        <span>Minimum cards in setup</span>
+        <span>It has less than this number of cards</span>
         <input type="range" id="cfg-min-cards" min="1" max="7" value="3">
         <span class="cfg-slider-val" id="cfg-min-cards-val">3</span>
       </div>
     </div>
 
-    <div class="section-label" style="margin-top:0.75rem;">Economy Cards</div>
+    <div class="section-label" style="margin-top:0.4rem;">Economy Cards <span style="font-size:0.8rem; text-transform:none; letter-spacing:0; color:#6a5030;">— Specify cards that are not limited or provide income but still contribute to the deck's economy (e.g. cost reduction)</span></div>
     <textarea
       id="economy-input"
       class="economy-textarea"
@@ -604,7 +604,7 @@
       spellcheck="false"
     ></textarea>
 
-    <div class="section-label" style="margin-top:0.4rem;">Restricted Cards</div>
+    <div class="section-label" style="margin-top:0.4rem;">Restricted Cards <span style="font-size:0.8rem; text-transform:none; letter-spacing:0; color:#6a5030;">— A restricted card is a card that is illegal to be played during setup (e.g. it has no valid targets)</span></div>
     <textarea
       id="restricted-cards-input"
       class="economy-textarea"
@@ -612,6 +612,7 @@
       placeholder="Card names or IDs, one per line or comma-separated…"
       spellcheck="false"
     ></textarea>
+    </details>
   </div>
 
   <div id="setup-section">
