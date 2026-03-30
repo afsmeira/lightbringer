@@ -507,8 +507,12 @@
     <p>ThronesDB Deck Analyzer</p>
   </header>
 
-  <div class="card">
-    <label for="deck-url">ThronesDB Deck URL</label>
+  <div class="panel" style="width:100%; max-width:680px; margin: 2rem auto 0;">
+    <div class="panel-header">
+      <div><div class="panel-title">Configuration</div></div>
+    </div>
+
+    <div class="section-label">Deck</div>
     <div class="input-row">
       <input
         type="text"
@@ -520,76 +524,70 @@
       <button id="analyze-btn" onclick="analyze()">Analyze</button>
     </div>
     <div id="status"></div>
-  </div>
 
-  <div id="config-section" style="display:none; margin-top:2rem; width:100%; max-width:680px;">
-    <div class="panel">
-      <div class="panel-header">
-        <div><div class="panel-title">Analyzer Configuration</div></div>
-        <button id="sim-btn" onclick="runSimulations()">Run Simulations</button>
-      </div>
-
-      <div class="section-label">Economy Cards</div>
-      <textarea
-        id="economy-input"
-        class="economy-textarea"
-        rows="3"
-        placeholder="Card names or IDs, one per line or comma-separated…"
-        spellcheck="false"
-      ></textarea>
-
-      <div class="config-controls">
-        <label class="cfg-check">
-          <input type="checkbox" id="cfg-two-chars" checked>
-          Require at least 2 characters
-        </label>
-        <label class="cfg-check">
-          <input type="checkbox" id="cfg-four-cost">
-          Require a 4+ cost character
-        </label>
-        <label class="cfg-check">
-          <input type="checkbox" id="cfg-economy" checked>
-          Require economy
-        </label>
-        <div class="section-label" style="margin-top:0.4rem;">Key Cards</div>
-        <textarea
-          id="key-cards-input"
-          class="economy-textarea"
-          rows="2"
-          placeholder="Key card names or IDs, one per line or comma-separated…"
-          spellcheck="false"
-        ></textarea>
-        <label class="cfg-check">
-          <input type="checkbox" id="cfg-key-cards">
-          Require key card
-        </label>
-        <div class="section-label" style="margin-top:0.4rem;">Avoidable Cards</div>
-        <textarea
-          id="avoidable-cards-input"
-          class="economy-textarea"
-          rows="2"
-          placeholder="Avoidable card names or IDs, one per line or comma-separated…"
-          spellcheck="false"
-        ></textarea>
-        <label class="cfg-check">
-          <input type="checkbox" id="cfg-no-avoidable">
-          Require no avoidable cards
-        </label>
-        <div class="cfg-slider-row">
-          <span>Minimum cards in setup</span>
-          <input type="range" id="cfg-min-cards" min="1" max="7" value="3">
-          <span class="cfg-slider-val" id="cfg-min-cards-val">3</span>
-        </div>
-        <div class="section-label" style="margin-top:0.4rem;">Restricted Cards</div>
-        <textarea
-          id="restricted-cards-input"
-          class="economy-textarea"
-          rows="2"
-          placeholder="Card names or IDs, one per line or comma-separated…"
-          spellcheck="false"
-        ></textarea>
+    <div class="config-controls" style="margin-top:0.75rem;">
+      <label class="cfg-check">
+        <input type="checkbox" id="cfg-two-chars" checked>
+        Require at least 2 characters
+      </label>
+      <label class="cfg-check">
+        <input type="checkbox" id="cfg-four-cost">
+        Require a 4+ cost character
+      </label>
+      <label class="cfg-check">
+        <input type="checkbox" id="cfg-economy" checked>
+        Require economy
+      </label>
+      <label class="cfg-check">
+        <input type="checkbox" id="cfg-key-cards">
+        Require key card
+      </label>
+      <label class="cfg-check">
+        <input type="checkbox" id="cfg-no-avoidable">
+        Require no avoidable cards
+      </label>
+      <div class="cfg-slider-row">
+        <span>Minimum cards in setup</span>
+        <input type="range" id="cfg-min-cards" min="1" max="7" value="3">
+        <span class="cfg-slider-val" id="cfg-min-cards-val">3</span>
       </div>
     </div>
+
+    <div class="section-label" style="margin-top:0.75rem;">Economy Cards</div>
+    <textarea
+      id="economy-input"
+      class="economy-textarea"
+      rows="3"
+      placeholder="Card names or IDs, one per line or comma-separated…"
+      spellcheck="false"
+    ></textarea>
+
+    <div class="section-label" style="margin-top:0.4rem;">Key Cards</div>
+    <textarea
+      id="key-cards-input"
+      class="economy-textarea"
+      rows="2"
+      placeholder="Card names or IDs, one per line or comma-separated…"
+      spellcheck="false"
+    ></textarea>
+
+    <div class="section-label" style="margin-top:0.4rem;">Avoidable Cards</div>
+    <textarea
+      id="avoidable-cards-input"
+      class="economy-textarea"
+      rows="2"
+      placeholder="Card names or IDs, one per line or comma-separated…"
+      spellcheck="false"
+    ></textarea>
+
+    <div class="section-label" style="margin-top:0.4rem;">Restricted Cards</div>
+    <textarea
+      id="restricted-cards-input"
+      class="economy-textarea"
+      rows="2"
+      placeholder="Card names or IDs, one per line or comma-separated…"
+      spellcheck="false"
+    ></textarea>
   </div>
 
   <div id="setup-section">
@@ -713,7 +711,6 @@
     async function analyze() {
       const btn = document.getElementById('analyze-btn');
       const urlInput = document.getElementById('deck-url').value;
-      document.getElementById('config-section').style.display = 'none';
       document.getElementById('setup-section').style.display = 'none';
 
       const deckId = parseDeckId(urlInput);
@@ -733,8 +730,9 @@
         currentSlots   = decklist.slots || {};
         currentCardMap = cardMap;
 
+        updateEconomyFlags();
+        setStatus('');
         runSimulations();
-        setStatus(`Analyzed "${decklist.name || deckId}" — ${Object.keys(currentSlots).length} card types in deck.`, 'success');
       } catch (err) {
         setStatus(`Error: ${err.message}`, 'error');
         console.error(err);
@@ -867,7 +865,7 @@
     function runSimulations() {
       if (!currentSlots || !currentCardMap) return;
 
-      const btn = document.getElementById('sim-btn');
+      const btn = document.getElementById('analyze-btn');
       btn.disabled = true;
       document.getElementById('stats-display').innerHTML = '<div class="sim-running">Running simulations…</div>';
 
@@ -952,8 +950,8 @@
         renderStats(poorCount, economyCount, limitedCount, mulliganCount, mulliganSuccessCount, avgGold, avgCards, goldDist, cardsDist, charsDist, strengthDist, keyCardsDist, avoidableDist, iconAvg, iconTotals, iconStrengthAvg, iconStrengthTotals, simLog);
         btn.disabled = false;
 
-        document.getElementById('config-section').style.display = 'block';
         document.getElementById('setup-section').style.display = 'block';
+        document.getElementById('setup-section').scrollIntoView({ behavior: 'smooth' });
       }, 0);
     }
 
