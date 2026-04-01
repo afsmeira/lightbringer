@@ -399,11 +399,43 @@
     .stat-card.poor .stat-value { color: #d9534f; }
     .stat-card.good .stat-value { color: #5cb85c; }
 
-    .sim-running {
+    .sim-loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      padding: 2.5rem 0;
+    }
+
+    .sim-loading-spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid #3a2a10;
+      border-top-color: #c9952a;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .sim-loading-text {
       color: #a89060;
       font-size: 0.88rem;
       font-style: italic;
-      padding: 1rem 0;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    #config-details-body {
+      overflow: hidden;
+      transition: max-height 0.4s ease, opacity 0.4s ease;
+      max-height: 2000px;
+      opacity: 1;
+    }
+
+    #config-details-body.collapsing {
+      max-height: 0;
+      opacity: 0;
     }
 
     /* Simulation log */
@@ -545,9 +577,9 @@
   </div>
 
   <div class="panel" style="width:100%; max-width:680px; margin-top:1.5rem;">
-    <details open>
+    <details id="config-details" open>
       <summary style="cursor:pointer; color:#c9952a; font-size:1.1rem; font-family:'Georgia',serif; letter-spacing:0.03em; user-select:none;">Configuration</summary>
-
+      <div id="config-details-body">
     <div class="config-controls" style="margin-top:1rem;">
       <label>A setup is considered poor if:</label>
       <label class="cfg-check">
@@ -612,6 +644,7 @@
       placeholder="Card names or IDs, one per line or comma-separated…"
       spellcheck="false"
     ></textarea>
+      </div><!-- /config-details-body -->
     </details>
   </div>
 
@@ -640,6 +673,17 @@
     let currentCardMap = null;
 
     // ── Utilities ────────────────────────────────────────────────────────────
+
+    function collapseConfig() {
+      const details = document.getElementById('config-details');
+      if (!details.open) return;
+      const body = document.getElementById('config-details-body');
+      body.classList.add('collapsing');
+      body.addEventListener('transitionend', () => {
+        details.removeAttribute('open');
+        body.classList.remove('collapsing');
+      }, { once: true });
+    }
 
     function setStatus(msg, type = '') {
       const el = document.getElementById('status');
@@ -736,7 +780,6 @@
     async function analyze() {
       const btn = document.getElementById('analyze-btn');
       const urlInput = document.getElementById('deck-url').value;
-      document.getElementById('setup-section').style.display = 'none';
 
       const deckId = parseDeckId(urlInput);
       if (!deckId) {
@@ -744,6 +787,9 @@
         return;
       }
 
+      collapseConfig();
+      document.getElementById('stats-display').innerHTML = '<div class="sim-loading"><div class="sim-loading-spinner"></div><div class="sim-loading-text">Fetching decklist…</div></div>';
+      document.getElementById('setup-section').style.display = 'block';
       btn.disabled = true;
       try {
         setStatus('Fetching decklist…');
@@ -761,6 +807,7 @@
       } catch (err) {
         setStatus(`Error: ${err.message}`, 'error');
         console.error(err);
+        document.getElementById('setup-section').style.display = 'none';
         btn.disabled = false;
       }
     }
@@ -891,7 +938,7 @@
 
       const btn = document.getElementById('analyze-btn');
       btn.disabled = true;
-      document.getElementById('stats-display').innerHTML = '<div class="sim-running">Running simulations…</div>';
+      document.getElementById('stats-display').innerHTML = '<div class="sim-loading"><div class="sim-loading-spinner"></div><div class="sim-loading-text">Running simulations…</div></div>';
 
       // Defer to next frame so the browser can repaint before the heavy loop
       setTimeout(() => {
@@ -973,9 +1020,8 @@
         const avgCards = (totalCards / SIM_COUNT).toFixed(2);
         renderStats(poorCount, economyCount, limitedCount, mulliganCount, mulliganSuccessCount, avgGold, avgCards, goldDist, cardsDist, charsDist, strengthDist, keyCardsDist, avoidableDist, iconAvg, iconTotals, iconStrengthAvg, iconStrengthTotals, simLog);
 
-        document.getElementById('setup-section').style.display = 'block';
-        btn.disabled = false;
         document.getElementById('setup-section').scrollIntoView({ behavior: 'smooth' });
+        btn.disabled = false;
       }, 0);
     }
 
