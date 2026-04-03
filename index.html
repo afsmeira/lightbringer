@@ -686,14 +686,6 @@
       </div>
     </div>
 
-    <div class="section-label" style="margin-top:0.4rem;">Restricted Cards <span style="font-size:0.8rem; text-transform:none; letter-spacing:0; color:#6a5030;">— A restricted card is a card that is illegal to be played during setup (e.g. it has no valid targets)</span></div>
-    <textarea
-      id="restricted-cards-input"
-      class="economy-textarea"
-      rows="2"
-      placeholder="Card names or IDs, one per line or comma-separated…"
-      spellcheck="false"
-    ></textarea>
       </div><!-- /config-details-body -->
     </details>
   </div>
@@ -1060,6 +1052,13 @@
       );
     }
 
+    function getRestrictedSet() {
+      return new Set(
+        [...document.querySelectorAll('#deck-table-section .restricted-cb:checked')]
+          .map(cb => cb.closest('tr').dataset.code.toLowerCase())
+      );
+    }
+
     function updateEconomyFlags() {
       if (!cachedCards) return;
       const economyCodes = new Set(
@@ -1249,7 +1248,7 @@
         const avoidableDist = new Array(8).fill(0);  // indices 0-7 avoidable cards
         const keySet            = getKeySet();
         const avoidSet          = getAvoidSet();
-        const restrictedSet     = parseCardSet('restricted-cards-input');
+        const restrictedSet     = getRestrictedSet();
         const filterRestricted  = hand => hand.filter(c => !cardInSet(c, restrictedSet));
         const iconTotals         = [0, 0, 0]; // [military, intrigue, power] character counts
         const iconStrengthTotals = [0, 0, 0]; // [military, intrigue, power] strength sums
@@ -1663,13 +1662,15 @@
 
         if (rows.length === 0) { section.innerHTML = ''; btn.disabled = false; return; }
 
-        const knownEconomyIds   = new Set([...knowEconomyCards].map(e => e.id));
-        const knownAvoidableIds = new Set([...knownAvoidableCards].map(e => e.id));
+        const knownEconomyIds    = new Set([...knowEconomyCards].map(e => e.id));
+        const knownAvoidableIds  = new Set([...knownAvoidableCards].map(e => e.id));
+        const knownRestrictedIds = new Set([...knownRestrictedCards].map(e => e.id));
         const trs = rows.map(({ card, qty }) => {
           const name = qty > 1 ? `${card.name} ×${qty}` : card.name;
           const isEvent = card.type_name === 'Event';
-          const isEconomy   = card.is_limited || card.income_modifier > 0 || knownEconomyIds.has(card.code);
-          const isAvoidable = knownAvoidableIds.has(card.code);
+          const isEconomy     = card.is_limited || card.income_modifier > 0 || knownEconomyIds.has(card.code);
+          const isAvoidable   = knownAvoidableIds.has(card.code);
+          const isRestricted  = knownRestrictedIds.has(card.code);
           const cb = (checked, disabled) =>
             `<input type="checkbox"${checked ? ' checked' : ''}${disabled ? ' disabled' : ''}>`;
           return `<tr data-code="${card.code}"${isEvent ? ' class="deck-table-disabled"' : ''}>
@@ -1677,7 +1678,7 @@
             <td>${cb(isEconomy, isEvent).replace('<input', '<input class="economy-cb"')}</td>
             <td>${cb(false, isEvent).replace('<input', '<input class="key-cb"')}</td>
             <td>${cb(isAvoidable, isEvent).replace('<input', '<input class="avoidable-cb"')}</td>
-            <td>${cb(false, isEvent)}</td>
+            <td>${cb(isRestricted, isEvent).replace('<input', '<input class="restricted-cb"')}</td>
           </tr>`;
         }).join('');
 
