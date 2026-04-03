@@ -281,6 +281,82 @@
     .economy-textarea:focus { border-color: #c9952a; }
     .economy-textarea::placeholder { color: #5a4020; }
 
+    /* Deck card table */
+    #deck-table-section {
+      margin-top: 1rem;
+    }
+
+    .deck-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+
+    .deck-table th {
+      text-align: left;
+      color: #6a5030;
+      font-size: 0.7rem;
+      font-family: sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0.3rem 0.5rem;
+      border-bottom: 1px solid #2a1a08;
+    }
+
+    .deck-table th:not(:first-child) {
+      text-align: center;
+    }
+
+    .deck-table td {
+      padding: 0.25rem 0.5rem;
+      color: #c8b880;
+      border-bottom: 1px solid #1e1208;
+    }
+
+    .deck-table td:not(:first-child) {
+      text-align: center;
+    }
+
+    .deck-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .deck-table tr.deck-table-disabled input[type="checkbox"] {
+      border-color: #2a1a08;
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    .deck-table input[type="checkbox"] {
+      appearance: none;
+      width: 13px;
+      height: 13px;
+      border: 1.5px solid #4a3510;
+      border-radius: 3px;
+      background: #120c04;
+      cursor: pointer;
+      position: relative;
+      vertical-align: middle;
+    }
+
+    .deck-table input[type="checkbox"]:checked {
+      background: #c9952a;
+      border-color: #c9952a;
+    }
+
+    .deck-table input[type="checkbox"]:checked::after {
+      content: '';
+      position: absolute;
+      left: 2px;
+      top: -1px;
+      width: 5px;
+      height: 8px;
+      border: 2px solid #1a0e04;
+      border-top: none;
+      border-left: none;
+      transform: rotate(45deg);
+    }
+
     /* Config controls */
     .config-controls {
       display: flex;
@@ -574,6 +650,7 @@
       <button id="analyze-btn" onclick="analyze()">Analyze</button>
     </div>
     <div id="status"></div>
+    <div id="deck-table-section"></div>
   </div>
 
   <div class="panel" style="width:100%; max-width:680px; margin-top:1.5rem;">
@@ -592,7 +669,7 @@
       </label>
       <label class="cfg-check">
         <input type="checkbox" id="cfg-economy" checked>
-        <span>It has no economy cards <span style="color:#6a5030; font-size:0.8rem;">— A card is considered an economy card if it's limited, provides income or is specified in the list below.</span></span>
+        <span>It has no economy cards <span style="color:#6a5030; font-size:0.8rem;">— Economy cards are marked with 💰 in the deck table above.</span></span>
       </label>
       <label class="cfg-check">
         <input type="checkbox" id="cfg-key-cards">
@@ -608,15 +685,6 @@
         <span class="cfg-slider-val" id="cfg-min-cards-val">3</span>
       </div>
     </div>
-
-    <div class="section-label" style="margin-top:0.4rem;">Economy Cards <span style="font-size:0.8rem; text-transform:none; letter-spacing:0; color:#6a5030;">— Specify cards that are not limited or provide income but still contribute to the deck's economy (e.g. cost reduction)</span></div>
-    <textarea
-      id="economy-input"
-      class="economy-textarea"
-      rows="3"
-      placeholder="Card names or IDs, one per line or comma-separated…"
-      spellcheck="false"
-    ></textarea>
 
     <div class="section-label" style="margin-top:0.4rem;">Key Cards</div>
     <textarea
@@ -958,10 +1026,6 @@
       return new Set(raw.split(/[\n,]+/).map(s => s.trim().toLowerCase()).filter(Boolean));
     }
 
-    function getEconomySet() {
-      return parseCardSet('economy-input');
-    }
-
     function cardInSet(card, set) {
       return set.has(card.name.toLowerCase()) || set.has(card.code.toLowerCase());
     }
@@ -1002,9 +1066,12 @@
 
     function updateEconomyFlags() {
       if (!cachedCards) return;
-      const economySet = getEconomySet();
+      const economyCodes = new Set(
+        [...document.querySelectorAll('#deck-table-section .economy-cb:checked')]
+          .map(cb => cb.closest('tr').dataset.code)
+      );
       for (const card of Object.values(cachedCards)) {
-        card.is_economy = !!(card.is_limited || card.income_modifier > 0 || cardInSet(card, economySet));
+        card.is_economy = economyCodes.has(card.code);
       }
     }
 
@@ -1560,7 +1627,79 @@
       if (e.key === 'Enter') analyze();
     });
 
-    document.getElementById('economy-input').addEventListener('input', updateEconomyFlags);
+    let deckTableTimer = null;
+    document.getElementById('deck-url').addEventListener('input', () => {
+      clearTimeout(deckTableTimer);
+      const deckId = parseDeckId(document.getElementById('deck-url').value);
+      if (deckId) {
+        document.getElementById('analyze-btn').disabled = true;
+        document.getElementById('deck-table-section').innerHTML = '';
+      } else {
+        document.getElementById('analyze-btn').disabled = false;
+        document.getElementById('deck-table-section').innerHTML = '';
+      }
+      deckTableTimer = setTimeout(fetchAndRenderDeckTable, 600);
+    });
+
+    async function fetchAndRenderDeckTable() {
+      const urlInput = document.getElementById('deck-url').value;
+      const deckId = parseDeckId(urlInput);
+      const section = document.getElementById('deck-table-section');
+      const btn = document.getElementById('analyze-btn');
+      if (!deckId) { section.innerHTML = ''; btn.disabled = false; return; }
+
+      try {
+        const [decklist, cardMap] = await Promise.all([
+          fetchJson(DECKLIST_API(deckId)),
+          getAllCards(),
+        ]);
+
+        const slots = decklist.slots || {};
+        const rows = Object.entries(slots)
+          .map(([code, qty]) => ({ card: cardMap[code], qty }))
+          .filter(({ card }) => card && !NON_DECK_TYPES.has(card.type_name))
+          .sort((a, b) => {
+            const typeOrder = { Character: 0, Attachment: 1, Location: 2, Event: 3 };
+            const ta = typeOrder[a.card.type_name] ?? 4;
+            const tb = typeOrder[b.card.type_name] ?? 4;
+            return ta !== tb ? ta - tb : a.card.name.localeCompare(b.card.name);
+          });
+
+        if (rows.length === 0) { section.innerHTML = ''; btn.disabled = false; return; }
+
+        const knownEconomyIds = new Set([...knowEconomyCards].map(e => e.id));
+        const trs = rows.map(({ card, qty }) => {
+          const name = qty > 1 ? `${card.name} ×${qty}` : card.name;
+          const isEvent = card.type_name === 'Event';
+          const isEconomy = card.is_limited || card.income_modifier > 0 || knownEconomyIds.has(card.code);
+          const cb = (checked, disabled) =>
+            `<input type="checkbox"${checked ? ' checked' : ''}${disabled ? ' disabled' : ''}>`;
+          return `<tr data-code="${card.code}"${isEvent ? ' class="deck-table-disabled"' : ''}>
+            <td>${name}</td>
+            <td>${cb(isEconomy, isEvent).replace('<input', '<input class="economy-cb"')}</td>
+            <td>${cb(false, isEvent)}</td>
+            <td>${cb(false, isEvent)}</td>
+            <td>${cb(false, isEvent)}</td>
+          </tr>`;
+        }).join('');
+
+        section.innerHTML = `
+          <table class="deck-table">
+            <thead><tr>
+              <th>Name</th>
+              <th>💰</th>
+              <th>🗝️</th>
+              <th>😐</th>
+              <th>🚫</th>
+            </tr></thead>
+            <tbody>${trs}</tbody>
+          </table>`;
+        btn.disabled = false;
+      } catch (err) {
+        section.innerHTML = '';
+        btn.disabled = false;
+      }
+    }
 
     document.getElementById('cfg-min-cards').addEventListener('input', function () {
       document.getElementById('cfg-min-cards-val').textContent = this.value;
