@@ -595,6 +595,7 @@
     .sim-card-key      { color: #e8d050; }
     .sim-card-economy  { color: #5aaa60; }
     .sim-card-avoidable{ color: #c05030; }
+    .sim-card-shadow   { color: #6090c0; }
   </style>
 </head>
 <body>
@@ -906,7 +907,8 @@
         card.is_limited = typeof card.text === 'string' && card.text.includes('Limited.');
         const incomeMatch = typeof card.text === 'string' && card.text.match(/([+-]\d+)\s+Income/);
         card.income_modifier = incomeMatch ? parseInt(incomeMatch[1], 10) : null;
-        card.bestow = typeof card.text === 'string' && /Bestow\s*\(\s*[1-9]\d*\s*\)/.test(card.text);
+        card.bestow  = typeof card.text === 'string' && /Bestow\s*\(\s*[1-9]\d*\s*\)/.test(card.text);
+        card.shadow  = typeof card.text === 'string' && /Shadow\s*\(\s*\d+\s*\)/.test(card.text);
         cachedCards[card.code] = card;
       }
       updateEconomyFlags();
@@ -936,15 +938,16 @@
     function isPoorSetup(cards) {
       const cfg = getConfig();
       if (cards.length < cfg.minCards) return true;
+      const nonShadow = cards.filter(c => !c.inShadow);
       if (cfg.requireTwoChars) {
-        const chars = cards.filter(c => c.type_name === 'Character' && !c.isDuplicate).length;
+        const chars = nonShadow.filter(c => c.type_name === 'Character' && !c.isDuplicate).length;
         if (chars < 2) return true;
       }
       if (cfg.requireFourCost) {
-        const hasFour = cards.some(c => c.type_name === 'Character' && !c.isDuplicate && c._cost >= 4);
+        const hasFour = nonShadow.some(c => c.type_name === 'Character' && !c.isDuplicate && c._cost >= 4);
         if (!hasFour) return true;
       }
-      if (cfg.requireEconomy && !cards.some(c => c.is_economy)) return true;
+      if (cfg.requireEconomy && !nonShadow.some(c => c.is_economy)) return true;
       if (cfg.requireKeyCard) {
         const keySet = getKeySet();
         if (keySet.size > 0 && !cards.some(c => cardInSet(c, keySet))) return true;
@@ -1055,6 +1058,8 @@
       return isNaN(n) ? null : n;
     }
 
+    const SHADOW_COST = 2;
+
     function allValidSetups(hand) {
       // Only consider cards that can be set up and have a numeric cost
       const eligible = hand
@@ -1063,6 +1068,7 @@
 
       const results = [];
       const n = eligible.length;
+      const seen = new Set();
 
       for (let mask = 1; mask < (1 << n); mask++) {
         const combo = [];
@@ -1070,36 +1076,57 @@
           if (mask & (1 << i)) combo.push(eligible[i]);
         }
 
-        // Unique cards: first copy costs full price, extra copies are duplicates (free)
-        // Non-unique cards: each copy always costs its full price
-        const uniqueSeen = new Set();
-        let total = 0;
-        const cardsWithDetails = combo.map(card => {
-          if (card.is_unique && uniqueSeen.has(card.code)) {
-            return { ...card, isDuplicate: true, effectiveCost: 0 };
-          }
-          if (card.is_unique) uniqueSeen.add(card.code);
-          total += card._cost;
-          return { ...card, isDuplicate: false, effectiveCost: card._cost };
-        });
+        // For shadow cards in this combo, enumerate all shadow/non-shadow variants.
+        // shadowOnly cards (events with shadow) must always be placed into shadows.
+        const shadowIndices = combo.reduce((acc, c, i) => { if (c.shadow) acc.push(i); return acc; }, []);
+        const shadowVariants = 1 << shadowIndices.length;
 
-        const limitedCount = cardsWithDetails.filter(c => c.is_limited).length;
-        if (total <= SETUP_GOLD && limitedCount <= 1) results.push({ cards: cardsWithDetails, total });
+        for (let sv = 0; sv < shadowVariants; sv++) {
+          // Build inShadow set for this variant
+          const inShadowSet = new Set();
+          for (let si = 0; si < shadowIndices.length; si++) {
+            if (sv & (1 << si)) inShadowSet.add(shadowIndices[si]);
+          }
+
+          // Skip variants where a shadowOnly card is not placed into shadows
+          const invalid = combo.some((c, idx) => c.shadowOnly && !inShadowSet.has(idx));
+          if (invalid) continue;
+
+          // Unique cards: first copy costs full price, extra copies are duplicates (free)
+          // Non-unique cards: each copy always costs its full price
+          const uniqueSeen = new Set();
+          let total = 0;
+          const cardsWithDetails = combo.map((card, idx) => {
+            const inShadow = inShadowSet.has(idx);
+            if (card.is_unique && uniqueSeen.has(card.code)) {
+              return { ...card, isDuplicate: true, effectiveCost: 0, inShadow };
+            }
+            if (card.is_unique) uniqueSeen.add(card.code);
+            const cost = inShadow ? SHADOW_COST : card._cost;
+            total += cost;
+            return { ...card, isDuplicate: false, effectiveCost: cost, inShadow };
+          });
+
+          const limitedCount = cardsWithDetails.filter(c => c.is_limited).length;
+          if (total <= SETUP_GOLD && limitedCount <= 1) {
+            const key = cardsWithDetails.map(c => `${c.code}:${c.inShadow ? 's' : 'n'}`).sort().join('|');
+            if (!seen.has(key)) {
+              seen.add(key);
+              results.push({ cards: cardsWithDetails, total });
+            }
+          }
+        }
       }
 
-      const seen = new Set();
-      return results.filter(({ cards }) => {
-        const key = cards.map(c => c.code).sort().join('|');
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
+      return results;
     }
 
     function sortSetups(setups) {
       const keySet = getKeySet();
 
-      const virtualGold = cards => cards.reduce((sum, c) => {
+      const nonShadow = cards => cards.filter(c => !c.inShadow);
+
+      const virtualGold = cards => nonShadow(cards).reduce((sum, c) => {
         if (c.isDuplicate) return sum;
         return sum + c.effectiveCost + (c.income_modifier > 0 ? c.income_modifier : 0);
       }, 0);
@@ -1109,10 +1136,10 @@
         const poorDiff = (isPoorSetup(a.cards) ? 1 : 0) - (isPoorSetup(b.cards) ? 1 : 0);
         if (poorDiff !== 0) return poorDiff;
 
-        // 2. more cards is better
+        // 2. more cards is better (shadow cards count)
         if (b.cards.length !== a.cards.length) return b.cards.length - a.cards.length;
 
-        // 3. more key cards is better
+        // 3. more key cards is better (shadow cards count)
         const keyDiff = b.cards.filter(c => cardInSet(c, keySet)).length
                       - a.cards.filter(c => cardInSet(c, keySet)).length;
         if (keyDiff !== 0) return keyDiff;
@@ -1121,23 +1148,23 @@
         const vgDiff = virtualGold(b.cards) - virtualGold(a.cards);
         if (vgDiff !== 0) return vgDiff;
 
-        // 5. has a limited card is better
-        const limDiff = (b.cards.some(c => c.is_limited) ? 1 : 0)
-                      - (a.cards.some(c => c.is_limited) ? 1 : 0);
+        // 5. has a limited card (non-shadow) is better
+        const limDiff = (nonShadow(b.cards).some(c => c.is_limited) ? 1 : 0)
+                      - (nonShadow(a.cards).some(c => c.is_limited) ? 1 : 0);
         if (limDiff !== 0) return limDiff;
 
-        // 6. fewer avoidable cards is better
+        // 6. fewer avoidable cards is better (shadow cards count)
         const avoidSet = getAvoidSet();
         const avoidDiff = a.cards.filter(c => cardInSet(c, avoidSet)).length
                         - b.cards.filter(c => cardInSet(c, avoidSet)).length;
         if (avoidDiff !== 0) return avoidDiff;
 
-        // 8. more characters (non-duplicate) is better
-        const nonDupChars = cards => cards.filter(c => c.type_name === 'Character' && !c.isDuplicate);
+        // 7. more characters (non-duplicate, non-shadow) is better
+        const nonDupChars = cards => nonShadow(cards).filter(c => c.type_name === 'Character' && !c.isDuplicate);
         const charDiff = nonDupChars(b.cards).length - nonDupChars(a.cards).length;
         if (charDiff !== 0) return charDiff;
 
-        // 9. higher total character strength is better
+        // 8. higher total character strength is better
         const str = cards => nonDupChars(cards).reduce((s, c) => s + (c.strength || 0), 0);
         return str(b.cards) - str(a.cards);
       });
@@ -1194,7 +1221,7 @@
           cardsDist[best.cards.length]++;
           totalGold  += best.total;
           totalCards += best.cards.length;
-          const distinctChars = best.cards.filter(c => c.type_name === 'Character' && !c.isDuplicate);
+          const distinctChars = best.cards.filter(c => c.type_name === 'Character' && !c.isDuplicate && !c.inShadow);
           charsDist[distinctChars.length]++;
           const totalStr = distinctChars.reduce((sum, c) => sum + (c.strength || 0), 0);
           if (totalStr < strengthDist.length) strengthDist[totalStr]++;
@@ -1220,6 +1247,7 @@
               isEconomy:   c.is_economy && !c.is_limited,
               isKey:       cardInSet(c, keySet),
               isAvoidable: cardInSet(c, avoidSet),
+              inShadow:    !!c.inShadow,
             })) : null,
             total:    best ? best.total : 0,
             poor:     !best || isPoorSetup(best.cards),
@@ -1311,8 +1339,10 @@
                         : c.isKey       ? 'sim-card-key'
                         : c.isEconomy   ? 'sim-card-economy'
                         : c.isAvoidable ? 'sim-card-avoidable'
+                        : c.inShadow    ? 'sim-card-shadow'
                         :                 'sim-card-normal';
-              return `<span class="${cls}">${c.name}<span class="sim-card-cost">(${c.isDup ? 'dup' : c.cost + 'g'})</span></span>`;
+              const costLabel = c.isDup ? 'dup' : c.inShadow ? 'shadow' : c.cost + 'g';
+              return `<span class="${cls}">${c.name}<span class="sim-card-cost">(${costLabel})</span></span>`;
             }).join(sep)
           : `<span class="sim-no-setup">No valid setup</span>`;
 
@@ -1343,6 +1373,7 @@
             <span class="sim-card-key">&#9632; Key card</span>
             <span class="sim-card-economy">&#9632; Economy</span>
             <span class="sim-card-avoidable">&#9632; Avoidable</span>
+            <span class="sim-card-shadow">&#9632; Shadow</span>
             <span class="sim-card-normal">&#9632; Normal</span>
           </div>
           <div class="sim-log">${rows}</div>
