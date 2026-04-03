@@ -98,8 +98,8 @@
       color: #a89060;
     }
 
-    #status.error { color: #d9534f; }
-    #status.success { color: #5cb85c; }
+    #status.error   { color: #d9534f; }
+    #status.loading { color: #a89060; font-style: italic; }
 
     #setup-section {
       display: none;
@@ -968,7 +968,6 @@
 
     async function getAllCards() {
       if (cachedCards) return cachedCards;
-      setStatus('Fetching card database…');
       const cards = await fetchJson(CARDS_API);
       cachedCards = {};
       for (const card of cards) {
@@ -1071,8 +1070,8 @@
       document.getElementById('stats-display').innerHTML = '<div class="sim-loading"><div class="sim-loading-spinner"></div><div class="sim-loading-text">Fetching decklist…</div></div>';
       document.getElementById('setup-section').style.display = 'block';
       btn.disabled = true;
+      setDeckLoadLocked(true);
       try {
-        setStatus('Fetching decklist…');
         const [decklist, cardMap] = await Promise.all([
           fetchJson(DECKLIST_API(deckId)),
           getAllCards(),
@@ -1082,13 +1081,13 @@
         currentCardMap = cardMap;
 
         updateEconomyFlags();
-        setStatus('');
         runSimulations();
       } catch (err) {
         setStatus(`Error: ${err.message}`, 'error');
         console.error(err);
         document.getElementById('setup-section').style.display = 'none';
         btn.disabled = false;
+        setDeckLoadLocked(false);
       }
     }
 
@@ -1302,6 +1301,7 @@
 
         document.getElementById('setup-section').scrollIntoView({ behavior: 'smooth' });
         btn.disabled = false;
+        setDeckLoadLocked(false);
       }, 0);
     }
 
@@ -1604,26 +1604,27 @@
     }
 
 
+    let deckLoadLocked = false;
     document.getElementById('deck-url').addEventListener('keydown', e => {
-      if (e.key === 'Enter') fetchAndRenderDeckTable();
+      if (e.key === 'Enter' && !deckLoadLocked) fetchAndRenderDeckTable();
     });
 
-    document.getElementById('deck-url').addEventListener('input', () => {
-      document.getElementById('deck-table-section').innerHTML = '';
-      document.getElementById('deck-table-details').style.display = 'none';
-      document.getElementById('config-details').style.display = 'none';
-      document.getElementById('analyze-btn-wrapper').style.display = 'none';
-    });
+    function setDeckLoadLocked(locked) {
+      deckLoadLocked = locked;
+      document.getElementById('load-deck-btn').disabled = locked;
+    }
 
     async function fetchAndRenderDeckTable() {
+      document.getElementById('setup-section').style.display = 'none';
       const urlInput = document.getElementById('deck-url').value;
       const deckId = parseDeckId(urlInput);
       const section  = document.getElementById('deck-table-section');
       const details  = document.getElementById('deck-table-details');
       const btn = document.getElementById('analyze-btn');
       const btnWrapper = document.getElementById('analyze-btn-wrapper');
-      if (!deckId) { section.innerHTML = ''; details.style.display = 'none'; document.getElementById('config-details').style.display = 'none'; btnWrapper.style.display = 'none'; return; }
+      if (!deckId) { section.innerHTML = ''; details.style.display = 'none'; document.getElementById('config-details').style.display = 'none'; btnWrapper.style.display = 'none'; setStatus(''); return; }
 
+      setStatus('Loading deck data…', 'loading');
       try {
         const [decklist, cardMap] = await Promise.all([
           fetchJson(DECKLIST_API(deckId)),
@@ -1680,11 +1681,13 @@
             </tr></thead>
             <tbody>${trs}</tbody>
           </table>`;
+        setStatus('');
         details.style.display = '';
         details.setAttribute('open', '');
         document.getElementById('config-details').style.display = '';
         btnWrapper.style.display = '';
       } catch (err) {
+        setStatus(`Error: ${err.message}`, 'error');
         section.innerHTML = '';
         details.style.display = 'none';
         document.getElementById('config-details').style.display = 'none';
