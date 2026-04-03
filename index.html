@@ -687,7 +687,7 @@
     <div class="panel">
       <div class="panel-header">
         <div>
-          <div class="panel-title">Setup Simulator</div>
+          <div class="panel-title">Setup Simulation Results</div>
           <div class="panel-subtitle">Best setup across 5000 simulated hands</div>
         </div>
       </div>
@@ -1660,6 +1660,12 @@
         }).join('');
 
         section.innerHTML = `
+          <div style="font-size:0.78rem; color:#6a5030; line-height:1.8; margin-bottom:0.75rem; margin-top:0.75rem;">
+            <div>💰 — <b>Economy</b>: Cards that contribute to the deck economy (e.g. limited, provides income, cost reduction)</div>
+            <div>🗝️ — <b>Key</b>: Cards that are crucial to the deck and are a priority for setup</div>
+            <div>😐 — <b>Avoidable</b>: Cards that should be avoided in setup because they have reactions to entering play (e.g. cards with Bestow)</div>
+            <div>🚫 — <b>Restricted</b>: Cards that are illegal to be played during setup (e.g. never have valid targets) or that make no sense (e.g. Milk of the Poppy). These cards are never selected for setups.</div>
+          </div>
           <table class="deck-table">
             <thead><tr>
               <th>Name</th>
