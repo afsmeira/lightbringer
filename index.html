@@ -677,7 +677,7 @@
       </label>
       <label class="cfg-check">
         <input type="checkbox" id="cfg-no-avoidable">
-        <span>It has avoidable cards <span style="color:#6a5030; font-size:0.8rem;">— A card is considered avoidable if it has an effect that won't trigger if it's played on setup. Specify these cards below.</span></span>
+        <span>It has avoidable cards <span style="color:#6a5030; font-size:0.8rem;">— Avoidable cards are marked with 😐 in the deck table above.</span></span>
       </label>
       <div class="cfg-slider-row">
         <span>It has less than this number of cards</span>
@@ -685,15 +685,6 @@
         <span class="cfg-slider-val" id="cfg-min-cards-val">3</span>
       </div>
     </div>
-
-    <div class="section-label" style="margin-top:0.4rem;">Avoidable Cards</div>
-    <textarea
-      id="avoidable-cards-input"
-      class="economy-textarea"
-      rows="2"
-      placeholder="Card names or IDs, one per line or comma-separated…"
-      spellcheck="false"
-    ></textarea>
 
     <div class="section-label" style="margin-top:0.4rem;">Restricted Cards <span style="font-size:0.8rem; text-transform:none; letter-spacing:0; color:#6a5030;">— A restricted card is a card that is illegal to be played during setup (e.g. it has no valid targets)</span></div>
     <textarea
@@ -1049,7 +1040,7 @@
         if (keySet.size > 0 && !cards.some(c => cardInSet(c, keySet))) return true;
       }
       if (cfg.requireNoAvoidable) {
-        const avoidSet = parseCardSet('avoidable-cards-input');
+        const avoidSet = getAvoidSet();
         if (avoidSet.size > 0 && cards.some(c => cardInSet(c, avoidSet))) return true;
       }
       return false;
@@ -1058,6 +1049,13 @@
     function getKeySet() {
       return new Set(
         [...document.querySelectorAll('#deck-table-section .key-cb:checked')]
+          .map(cb => cb.closest('tr').dataset.code.toLowerCase())
+      );
+    }
+
+    function getAvoidSet() {
+      return new Set(
+        [...document.querySelectorAll('#deck-table-section .avoidable-cb:checked')]
           .map(cb => cb.closest('tr').dataset.code.toLowerCase())
       );
     }
@@ -1213,7 +1211,7 @@
         if (limDiff !== 0) return limDiff;
 
         // 6. fewer avoidable cards is better
-        const avoidSet = parseCardSet('avoidable-cards-input');
+        const avoidSet = getAvoidSet();
         const avoidDiff = a.cards.filter(c => cardInSet(c, avoidSet)).length
                         - b.cards.filter(c => cardInSet(c, avoidSet)).length;
         if (avoidDiff !== 0) return avoidDiff;
@@ -1250,7 +1248,7 @@
         const keyCardsDist  = new Array(8).fill(0);  // indices 0-7 key cards
         const avoidableDist = new Array(8).fill(0);  // indices 0-7 avoidable cards
         const keySet            = getKeySet();
-        const avoidSet          = parseCardSet('avoidable-cards-input');
+        const avoidSet          = getAvoidSet();
         const restrictedSet     = parseCardSet('restricted-cards-input');
         const filterRestricted  = hand => hand.filter(c => !cardInSet(c, restrictedSet));
         const iconTotals         = [0, 0, 0]; // [military, intrigue, power] character counts
@@ -1665,18 +1663,20 @@
 
         if (rows.length === 0) { section.innerHTML = ''; btn.disabled = false; return; }
 
-        const knownEconomyIds = new Set([...knowEconomyCards].map(e => e.id));
+        const knownEconomyIds   = new Set([...knowEconomyCards].map(e => e.id));
+        const knownAvoidableIds = new Set([...knownAvoidableCards].map(e => e.id));
         const trs = rows.map(({ card, qty }) => {
           const name = qty > 1 ? `${card.name} ×${qty}` : card.name;
           const isEvent = card.type_name === 'Event';
-          const isEconomy = card.is_limited || card.income_modifier > 0 || knownEconomyIds.has(card.code);
+          const isEconomy   = card.is_limited || card.income_modifier > 0 || knownEconomyIds.has(card.code);
+          const isAvoidable = knownAvoidableIds.has(card.code);
           const cb = (checked, disabled) =>
             `<input type="checkbox"${checked ? ' checked' : ''}${disabled ? ' disabled' : ''}>`;
           return `<tr data-code="${card.code}"${isEvent ? ' class="deck-table-disabled"' : ''}>
             <td>${name}</td>
             <td>${cb(isEconomy, isEvent).replace('<input', '<input class="economy-cb"')}</td>
             <td>${cb(false, isEvent).replace('<input', '<input class="key-cb"')}</td>
-            <td>${cb(false, isEvent)}</td>
+            <td>${cb(isAvoidable, isEvent).replace('<input', '<input class="avoidable-cb"')}</td>
             <td>${cb(false, isEvent)}</td>
           </tr>`;
         }).join('');
