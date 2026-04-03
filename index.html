@@ -1061,10 +1061,12 @@
     const SHADOW_COST = 2;
 
     function allValidSetups(hand) {
-      // Only consider cards that can be set up and have a numeric cost
+      // Only consider cards that can be set up.
+      // Events are only eligible if they have shadow (always go into shadows).
+      // Cards with cost "-" always have shadow and go into shadows at SHADOW_COST.
       const eligible = hand
-        .filter(c => SETUP_TYPES.has(c.type_name) && cardCost(c) !== null)
-        .map(c => ({ ...c, _cost: cardCost(c) }));
+        .filter(c => (SETUP_TYPES.has(c.type_name) || (c.type_name === 'Event' && c.shadow)) && (cardCost(c) !== null || c.shadow))
+        .map(c => ({ ...c, _cost: cardCost(c) ?? 0 }));
 
       const results = [];
       const n = eligible.length;
@@ -1110,31 +1112,30 @@
 
     function sortSetups(setups) {
       const keySet = getKeySet();
-
-      const nonShadow = cards => cards.filter(c => !c.inShadow);
-
-      const virtualGold = cards => nonShadow(cards).reduce((sum, c) => {
+      
+      const virtualGold = cards => cards.reduce((sum, c) => {
         if (c.isDuplicate) return sum;
         return sum + c.effectiveCost + (c.income_modifier > 0 ? c.income_modifier : 0);
       }, 0);
-
+      
       return setups.slice().sort((a, b) => {
         // 1. non-poor first
         const poorDiff = (isPoorSetup(a.cards) ? 1 : 0) - (isPoorSetup(b.cards) ? 1 : 0);
         if (poorDiff !== 0) return poorDiff;
-
+        
         // 2. more cards is better (shadow cards count)
         if (b.cards.length !== a.cards.length) return b.cards.length - a.cards.length;
-
+        
         // 3. more key cards is better (shadow cards count)
         const keyDiff = b.cards.filter(c => cardInSet(c, keySet)).length
-                      - a.cards.filter(c => cardInSet(c, keySet)).length;
+        - a.cards.filter(c => cardInSet(c, keySet)).length;
         if (keyDiff !== 0) return keyDiff;
-
+        
         // 4. higher virtual gold is better
         const vgDiff = virtualGold(b.cards) - virtualGold(a.cards);
         if (vgDiff !== 0) return vgDiff;
-
+        
+        const nonShadow = cards => cards.filter(c => !c.inShadow);
         // 5. has a limited card (non-shadow) is better
         const limDiff = (nonShadow(b.cards).some(c => c.is_limited) ? 1 : 0)
                       - (nonShadow(a.cards).some(c => c.is_limited) ? 1 : 0);
@@ -1224,8 +1225,8 @@
           if (best.cards.some(c => c.is_economy)) economyCount++;
           if (best.cards.some(c => c.is_limited)) limitedCount++;
           simLog.push({
-            initialHand:  initialHand.map(c => ({ name: c.name, type: c.type_name })),
-            mulliganHand: mulliganHand ? mulliganHand.map(c => ({ name: c.name, type: c.type_name })) : null,
+            initialHand:  initialHand.map(c => ({ name: c.name, type: c.type_name, isShadowEvent: c.type_name === 'Event' && !!c.shadow })),
+            mulliganHand: mulliganHand ? mulliganHand.map(c => ({ name: c.name, type: c.type_name, isShadowEvent: c.type_name === 'Event' && !!c.shadow })) : null,
             setup:    best ? best.cards.map(c => ({
               name:        c.name,
               cost:        c.effectiveCost,
@@ -1311,7 +1312,7 @@
       const sep = `<span class="sim-sep">·</span>`;
 
       const renderCards = cards => cards.map(c =>
-        SETUP_TYPES.has(c.type)
+        SETUP_TYPES.has(c.type) || c.isShadowEvent
           ? c.name
           : `<span class="sim-card-dim">${c.name}</span>`
       ).join(sep);
