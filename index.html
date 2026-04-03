@@ -636,6 +636,7 @@
         autocomplete="off"
         spellcheck="false"
       />
+      <button id="load-deck-btn" onclick="fetchAndRenderDeckTable()">Load</button>
     </div>
     <div id="status"></div>
 
@@ -680,7 +681,9 @@
       </div><!-- /config-details-body -->
     </details>
 
-    <button id="analyze-btn" onclick="analyze()" style="margin-top:1.25rem; display:none;">Analyze</button>
+    <div style="margin-top:1.25rem; display:none; text-align:center;" id="analyze-btn-wrapper">
+      <button id="analyze-btn" onclick="analyze()" style="font-size:1rem; padding:0.6rem 0; width:60%;">Analyze</button>
+    </div>
   </div>
 
   <div id="setup-section">
@@ -1601,15 +1604,15 @@
     }
 
 
-    let deckTableTimer = null;
+    document.getElementById('deck-url').addEventListener('keydown', e => {
+      if (e.key === 'Enter') fetchAndRenderDeckTable();
+    });
+
     document.getElementById('deck-url').addEventListener('input', () => {
-      clearTimeout(deckTableTimer);
-      const deckId = parseDeckId(document.getElementById('deck-url').value);
       document.getElementById('deck-table-section').innerHTML = '';
       document.getElementById('deck-table-details').style.display = 'none';
       document.getElementById('config-details').style.display = 'none';
-      document.getElementById('analyze-btn').style.display = 'none';
-      deckTableTimer = setTimeout(fetchAndRenderDeckTable, 600);
+      document.getElementById('analyze-btn-wrapper').style.display = 'none';
     });
 
     async function fetchAndRenderDeckTable() {
@@ -1618,7 +1621,8 @@
       const section  = document.getElementById('deck-table-section');
       const details  = document.getElementById('deck-table-details');
       const btn = document.getElementById('analyze-btn');
-      if (!deckId) { section.innerHTML = ''; details.style.display = 'none'; document.getElementById('config-details').style.display = 'none'; btn.style.display = 'none'; return; }
+      const btnWrapper = document.getElementById('analyze-btn-wrapper');
+      if (!deckId) { section.innerHTML = ''; details.style.display = 'none'; document.getElementById('config-details').style.display = 'none'; btnWrapper.style.display = 'none'; return; }
 
       try {
         const [decklist, cardMap] = await Promise.all([
@@ -1637,7 +1641,7 @@
             return ta !== tb ? ta - tb : a.card.name.localeCompare(b.card.name);
           });
 
-        if (rows.length === 0) { section.innerHTML = ''; details.style.display = 'none'; document.getElementById('config-details').style.display = 'none'; btn.style.display = 'none'; return; }
+        if (rows.length === 0) { section.innerHTML = ''; details.style.display = 'none'; document.getElementById('config-details').style.display = 'none'; btnWrapper.style.display = 'none'; return; }
 
         const knownEconomyIds    = new Set([...knowEconomyCards].map(e => e.id));
         const knownAvoidableIds  = new Set([...knownAvoidableCards].map(e => e.id));
@@ -1679,12 +1683,12 @@
         details.style.display = '';
         details.setAttribute('open', '');
         document.getElementById('config-details').style.display = '';
-        btn.style.display = '';
+        btnWrapper.style.display = '';
       } catch (err) {
         section.innerHTML = '';
         details.style.display = 'none';
         document.getElementById('config-details').style.display = 'none';
-        btn.style.display = 'none';
+        btnWrapper.style.display = 'none';
       }
     }
 
