@@ -1076,28 +1076,15 @@
           if (mask & (1 << i)) combo.push(eligible[i]);
         }
 
-        // For shadow cards in this combo, enumerate all shadow/non-shadow variants.
-        // shadowOnly cards (events with shadow) must always be placed into shadows.
-        const shadowIndices = combo.reduce((acc, c, i) => { if (c.shadow) acc.push(i); return acc; }, []);
-        const shadowVariants = 1 << shadowIndices.length;
-
-        for (let sv = 0; sv < shadowVariants; sv++) {
-          // Build inShadow set for this variant
-          const inShadowSet = new Set();
-          for (let si = 0; si < shadowIndices.length; si++) {
-            if (sv & (1 << si)) inShadowSet.add(shadowIndices[si]);
-          }
-
-          // Skip variants where a shadowOnly card is not placed into shadows
-          const invalid = combo.some((c, idx) => c.shadowOnly && !inShadowSet.has(idx));
-          if (invalid) continue;
+        // Shadow cards are always placed into shadows.
+        {
 
           // Unique cards: first copy costs full price, extra copies are duplicates (free)
           // Non-unique cards: each copy always costs its full price
           const uniqueSeen = new Set();
           let total = 0;
-          const cardsWithDetails = combo.map((card, idx) => {
-            const inShadow = inShadowSet.has(idx);
+          const cardsWithDetails = combo.map((card) => {
+            const inShadow = !!card.shadow;
             if (card.is_unique && uniqueSeen.has(card.code)) {
               return { ...card, isDuplicate: true, effectiveCost: 0, inShadow };
             }
