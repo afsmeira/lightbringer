@@ -581,7 +581,7 @@
       <summary style="cursor:pointer; color:#c9952a; font-size:1.1rem; font-family:'Georgia',serif; letter-spacing:0.03em; user-select:none;">Configuration</summary>
       <div id="config-details-body">
     <div class="config-controls" style="margin-top:1rem;">
-      <label>A setup is considered poor if:</label>
+      <label>A setup is considered poor if (poor setups are mulliganed):</label>
       <label class="cfg-check">
         <input type="checkbox" id="cfg-two-chars" checked>
         It has less than 2 characters
@@ -671,6 +671,239 @@
     let cachedCards    = null;
     let currentSlots   = null;   // { code: qty, … } for active deck
     let currentCardMap = null;
+
+    // Cards that provide economy benefits but aren't limited or provide income.
+    const knowEconomyCards = new Set([
+      {"id":"01056", "name":"Dragonstone Faithful"},
+      {"id":"01074", "name":"Iron Islands Fishmonger"},
+      {"id":"01094", "name":"Lannisport Merchant"},
+      {"id":"01110", "name":"Desert Scavenger"},
+      {"id":"01133", "name":"Steward at the Wall"},
+      {"id":"01152", "name":"Winterfell Steward"},
+      {"id":"01170", "name":"Targaryen Loyalist"},
+      {"id":"01188", "name":"Garden Caretaker"},
+      {"id":"02007", "name":"Renly Baratheon"},
+      {"id":"02105", "name":"Sworn Brother"},
+      {"id":"03015", "name":"House Tully Septon"}, // Maybe? It has an extraneous cost/condition
+      {"id":"03042", "name":"Tourney Grounds"},
+      {"id":"04017", "name":"Tower of the Sun"}, // Maybe? It has an extraneous cost/condition
+      {"id":"04021", "name":"Donella Hornwood"},
+      {"id":"04028", "name":"The Stone Drum"}, // Maybe? It has an extraneous cost/condition
+      {"id":"04042", "name":"Bear Island"},
+      {"id":"04057", "name":"Hot Pie"},
+      {"id":"05019", "name":"Lannisport Treasury"},
+      {"id":"06005", "name":"Eastwatch Carpenter"}, // Maybe? It has an extraneous cost/condition
+      {"id":"06043", "name":"Elinor Tyrell"},
+      {"id":"07016", "name":"Builder at the Wall"},
+      {"id":"10014", "name":"Maester Kedry"}, // Maybe? It has an extraneous cost/condition
+      {"id":"11017", "name":"The Shadow City"},
+      {"id":"11033", "name":"Hizdahr zo Loraq"},
+      {"id":"13077", "name":"Advisor to the Crown"},
+      {"id":"14004", "name":"Renly Baratheon"},
+      {"id":"14008", "name":"Selyse Baratheon"},
+      {"id":"14029", "name":"Prince's Attendant"},
+      {"id":"17101", "name":"Selyse Baratheon"},
+      {"id":"17130", "name":"Hizdahr zo Loraq"},
+      {"id":"21004", "name":"The Iron Fleet"},
+      {"id":"21023", "name":"Longtable"},
+      {"id":"21027", "name":"Squire"},
+      {"id":"22008", "name":"Casterly Rock"},
+      {"id":"23030", "name":"Gulltown Merchant"},
+      {"id":"26034", "name":"Queen of Meereen"},
+      {"id":"26111", "name":"Howland Reed"},
+
+    ])
+    const knownAvoidableCards = new Set([
+      {"id":"01028", "name":"Littlefinger"},
+      {"id":"01029", "name":"Varys"},
+      {"id":"01047", "name":"Melisandre"},
+      {"id":"01047", "name":"Vanguard Lancer"},
+      {"id":"01095", "name":"Queen's Assassin"},
+      {"id":"01112", "name":"Greeblood Trader"},
+      {"id":"01129", "name":"Yoren"},
+      {"id":"01141", "name":"Arya Stark"},
+      {"id":"01148", "name":"Summer"},
+      {"id":"01189", "name":"Olenna's Informant"},
+      {"id":"02023", "name":"Lady-in-Waiting"},
+      {"id":"02043", "name":"Ser Hobber Redwyne"},
+      {"id":"02051", "name":"Newly-Made Lord"},
+      {"id":"02086", "name":"Northern Rookery"},
+      {"id":"03009", "name":"Riverrun Minstrel"},
+      {"id":"03037", "name":"House Florent Knight"},
+      {"id":"04035", "name":"Starfall Cavalry"},
+      {"id":"04036", "name":"Venomous Blade"},
+      {"id":"04047", "name":"Asshai Priestess"},
+      {"id":"04051", "name":"Lordsport Fisherman"},
+      {"id":"04069", "name":"Tanda Stokeworth"},
+      {"id":"04077", "name":"Jaqen H'ghar"},
+      {"id":"04089", "name":"Joffrey Baratheon"},
+      {"id":"04109", "name":"Podrick Payne"},
+      {"id":"04113", "name":"Qaithe of the Shadow"},
+      {"id":"04115", "name":"Ser Arys Oakheart"},
+      {"id":"05003", "name":"Ser Kevan Lannister"},
+      {"id":"05009", "name":"Shagga Son of Dolf"},
+      {"id":"05011", "name":"Moon Brothers"},
+      {"id":"05012", "name":"Red Keep Spy"},
+      {"id":"05016", "name":"Lannisport Guard"},
+      {"id":"05037", "name":"Alerie Tyrell"},
+      {"id":"06007", "name":"Fickle Bannerman"}, // Bestow
+      {"id":"06009", "name":"Stone Crows"}, // Bestow
+      {"id":"06015", "name":"Ricasso"}, // Bestow
+      {"id":"06021", "name":"Bear Island Host"}, // Bestow
+      {"id":"06025", "name":"Gilly"}, // Bestow
+      {"id":"06031", "name":"Wex Pyke"}, // Bestow
+      {"id":"06033", "name":"Second Sons"}, // Bestow
+      {"id":"06035", "name":"Orphan of the Greenblood"}, // Bestow
+      {"id":"06037", "name":"Black Walder"}, // Bestow
+      {"id":"06063", "name":"Oldtown Informer"}, // Bestow
+      {"id":"06067", "name":"Ser Axel Florent"}, // Bestow
+      {"id":"06069", "name":"Ser Osmund Kettleblack"}, // Bestow
+      {"id":"06071", "name":"Silence's Crew"}, // Bestow
+      {"id":"06073", "name":"Strong Belwas"}, // Bestow
+      {"id":"06075", "name":"Ellaria Sand"}, // Bestow
+      {"id":"06078", "name":"Frey Bastard"}, // Bestow
+      {"id":"06083", "name":"Ser Garlan Tyrell"}, // Bestow
+      {"id":"06087", "name":"Stannis's Cavalry"}, // Bestow
+      {"id":"06089", "name":"Kayce Merchant"}, // Bestow
+      {"id":"06093", "name":"Irri"}, // Bestow
+      {"id":"06097", "name":"Begging Brother"}, // Bestow
+      {"id":"06101", "name":"Sansa's Maid"}, // Bestow
+      {"id":"06105", "name":"Donal Noye"}, // Bestow
+      {"id":"06111", "name":"Stony Shore Raider"}, // Bestow
+      {"id":"06115", "name":"Dornish Spy"},
+      {"id":"07031", "name":"Southron Messenger"},
+      {"id":"07040", "name":"Dalla"},
+      {"id":"08006", "name":"Young Builder"}, // Bestow
+      {"id":"08008", "name":"Queen's Men"},
+      {"id":"08016", "name":"Dorea Sand"},
+      {"id":"08022", "name":"Brightwater Knight"}, // Bestow
+      {"id":"08027", "name":"Devan Seaworth"}, // Bestow
+      {"id":"08029", "name":"Black Ears"},
+      {"id":"08022", "name":"Stormcrows"}, // Bestow
+      {"id":"08041", "name":"Ramsay Snow"},
+      {"id":"08063", "name":"Hightower Spy"},
+      {"id":"08067", "name":"Selyse Baratheon"},
+      {"id":"08073", "name":"Wise Master"}, // Bestow
+      {"id":"08075", "name":"Planky Town Trader"}, // Bestow
+      {"id":"08085", "name":"Coldhands"},
+      {"id":"08089", "name":"Cersei's Informer"}, // Bestow
+      {"id":"08101", "name":"Host of the Riverlands"}, // Bestow
+      {"id":"08111", "name":"Saltcliffe Sailor"}, // Bestow
+      {"id":"09011", "name":"Emissary of the Hightower"},
+      {"id":"10019", "name":"Hotah's Axe"},
+      {"id":"11041", "name":"Umber Loyalist"},
+      {"id":"11051", "name":"Drowned God Fanatic"},
+      {"id":"11081", "name":"Bear Island Scout"},
+      {"id":"11091", "name":"Iron Victory's Crew"},
+      {"id":"12002", "name":"Euron Crow's Eye"},
+      {"id":"12014", "name":"Eager Deckhand"},
+      {"id":"12040", "name":"Rogue Wildling"},
+      {"id":"13085", "name":"Yoren"},
+      {"id":"13096", "name":"The Mountain's Skull"},
+      {"id":"14005", "name":"Salladhor Saan"},
+      {"id":"14007", "name":"Alester Florent"},
+      {"id":"14010", "name":"Dale Seaworth"},
+      {"id":"14012", "name":"Red Priest"},
+      {"id":"14015", "name":"Bastard of Robert"},
+      {"id":"14033", "name":"She-Bear"},
+      {"id":"15006", "name":"Galazza Galare"},
+      {"id":"15025", "name":"Delena Florent"},
+      {"id":"15041", "name":"Archmaester Marwyn"},
+      {"id":"16005", "name":"Spider's Whisperer"},
+      {"id":"17103", "name":"Euron Crow's Eye"},
+      {"id":"17106", "name":"Drowned God Fanatic"},
+      {"id":"17116", "name":"Yoren"},
+      {"id":"17124", "name":"Bear Island Scout"},
+      {"id":"17138", "name":"Oldtown Informer"}, // Bestow
+      {"id":"17142", "name":"Flea Bottom"}, // Bestow
+      {"id":"18002", "name":"Godry the Giantslayer"}, // Bestow
+      {"id":"18004", "name":"Cragorn"}, // Bestow
+      {"id":"18005", "name":"Ser Addam Marbrand"},
+      {"id":"18010", "name":"Leathers"},
+      {"id":"18010", "name":"Harwin"}, // Bestow
+      {"id":"18013", "name":"Reznak mo Reznak"}, // Bestow
+      {"id":"18015", "name":"Orton Merryweather"},
+      {"id":"18016", "name":"Ser Emmon Cuy"}, // Bestow
+      {"id":"18017", "name":"Vargo Hoat"}, // Bestow
+      {"id":"19005", "name":"Milk Snakes"}, // Bestow
+      {"id":"19014", "name":"Tyrion Lannister"}, // Bestow
+      {"id":"19017", "name":"Gulltown City Guard"},
+      {"id":"20002", "name":"Sellsails"}, // Bestow
+      {"id":"20002", "name":"Black Lorren"}, // Bestow
+      {"id":"20012", "name":"Bronn"}, // Bestow
+      {"id":"20012", "name":"Farlen"},
+      {"id":"20031", "name":"Golden Company"}, // Bestow
+      {"id":"20036", "name":"Mina Redwyne"},
+      {"id":"20037", "name":"Ser Guyard Morrigen"}, // Bestow
+      {"id":"20042", "name":"Brave Companions"}, // Bestow
+      {"id":"20043", "name":"Septon Utt"}, // Bestow
+      {"id":"20045", "name":"Shagwell"}, // Bestow
+      {"id":"20047", "name":"Sweetsleep"},
+      {"id":"21010", "name":"Lord Ander's Host"},
+      {"id":"21013", "name":"Great Ranging"},
+      {"id":"22022", "name":"Alla Tyrel"},
+      {"id":"23009", "name":"Craster's Keep Mutineer"},
+      {"id":"23010", "name":"Defensive Debris"}, // Bestow
+      {"id":"24023", "name":"Oldtown City Watch"},
+      {"id":"25013", "name":"Free Brothers"},
+      {"id":"25073", "name":"Black Balaq"}, // Bestow
+      {"id":"25076", "name":"Olenna's Wheelhouse"}, // Bestow
+      {"id":"25077", "name":"Varys"}, // Bestow
+      {"id":"25081", "name":"Blackhaven Rider"},
+      {"id":"25105", "name":"Tywin's Whisperer"},
+      {"id":"26005", "name":"Ashemark Councilor"},
+      {"id":"26027", "name":"Ghost Hill Elite"},
+      {"id":"26049", "name":"Northern Envoy"},
+      {"id":"26067", "name":"Southron Informant"},
+    ])
+    const knownRestrictedCards = new Set([
+      {"id":"01035", "name":"Milk of the Poppy"},
+      {"id":"02006", "name":"Pleasure Barge"},
+      {"id":"02034", "name":"Crown of Gold"},
+      {"id":"02052", "name":"Fishing Net"}, // Should be caught by attachment restrictions during setup simulation
+      {"id":"02055", "name":"Attainted"}, // Should be caught by attachment restrictions during setup simulation
+      {"id":"02071", "name":"Paid Off"}, // Should be caught by attachment restrictions during setup simulation
+      {"id":"02077", "name":"Condemned"}, // Should be caught by attachment restrictions during setup simulation
+      {"id":"02088", "name":"Stinking Drunk"}, // Should be caught by attachment restrictions during setup simulation
+      {"id":"02102", "name":"Ward"},
+      {"id":"02116", "name":"Imprisioned"}, // Should be caught by attachment restrictions during setup simulation
+      {"id":"03021", "name":"Frozen Solid"},
+      {"id":"03025", "name":"Motley"}, // Should be caught by attachment restrictions during setup simulation
+      {"id":"04048", "name":"Visited by Shadows"}, // Should be caught by attachment restrictions during setup simulation
+      {"id":"04098", "name":"The Frostfangs"},
+      {"id":"06002", "name":"The Tumblestone"},
+      {"id":"06022", "name":"Marriage Pact"},
+      {"id":"06050", "name":"Fever Dreams"},
+      {"id":"06054", "name":"Astapor"},
+      {"id":"06104", "name":"Horn Hill"},
+      {"id":"06108", "name":"King's Blood"},
+      {"id":"06116", "name":"Locked Away"},
+      {"id":"07032", "name":"Lingering Venom"},
+      {"id":"08009", "name":"Taritor to the Crown"}, // Should be caught by attachment restrictions during setup simulation
+      {"id":"08011", "name":"Ashemark"},
+      {"id":"08019", "name":"The Iron Bank"},
+      {"id":"08022", "name":"The House of Black and White"},
+      {"id":"08046", "name":"Mole's Town"},
+      {"id":"08066", "name":"Obsidian Arrows"},
+      {"id":"08074", "name":"Yunkai"},
+      {"id":"08078", "name":"Seized by the Guard"},
+      {"id":"08078", "name":"Secret Pact"},
+      {"id":"08228", "name":"The Great Sept of Baelor"},
+      {"id":"09043", "name":"Strangler"},
+      {"id":"10032", "name":"Turncloak"},
+      {"id":"10032", "name":"Reckless"},
+      {"id":"14021", "name":"Hunting Accident"},
+      {"id":"16002", "name":"Melisandre's Favor"},
+      {"id":"16004", "name":"Conquer"},
+      {"id":"16022", "name":"Sky Cell"},
+      {"id":"17126", "name":"Ward"},
+      {"id":"17134", "name":"Crown of Gold"},
+      {"id":"25062", "name":"Martial Law"},
+      {"id":"26002", "name":"Roast Boar"}, // Should be caught by attachment restrictions during setup simulation
+      {"id":"26086", "name":"Slander and Lies"}, // Should be caught by attachment restrictions during setup simulation
+      {"id":"26094", "name":"Poisoned Locusts"}, // Should be caught by attachment restrictions during setup simulation
+      {"id":"26113", "name":"War Elephants"},
+    ])
 
     // ── Utilities ────────────────────────────────────────────────────────────
 
