@@ -1151,12 +1151,16 @@
                         - b.cards.filter(c => cardInSet(c, avoidSet)).length;
         if (avoidDiff !== 0) return avoidDiff;
 
-        // 7. more characters (non-duplicate) is better. Characters in shadow still count.
+        // 7. more characters (non-duplicate) is better.
+        // Characters in shadow still count, even though they are not really in play.
+        // This helps to differentiate between setups w/ a lot of shadow cards.
         const nonDupChars = cards => cards.filter(c => c.type_name === 'Character' && !c.isDuplicate);
         const charDiff = nonDupChars(b.cards).length - nonDupChars(a.cards).length;
         if (charDiff !== 0) return charDiff;
 
-        // 8. higher total character strength is better. Characters in shadow still count.
+        // 8. higher total character strength is better.
+        // Characters in shadow still count, even though they are not really in play.
+        // This helps to differentiate between setups w/ a lot of shadow cards.
         const str = cards => nonDupChars(cards).reduce((s, c) => s + (c.strength || 0), 0);
         return str(b.cards) - str(a.cards);
       });
@@ -1606,17 +1610,18 @@
         const trs = rows.map(({ card, qty }) => {
           const name = qty > 1 ? `${card.name} ×${qty}` : card.name;
           const isEvent = card.type_name === 'Event';
+          const isDisabled    = isEvent && !card.shadow;
           const isEconomy     = card.is_limited || card.income_modifier > 0 || knownEconomyIds.has(card.code);
           const isAvoidable   = knownAvoidableIds.has(card.code) || (card.bestow && card.type_name === 'Character');
           const isRestricted  = knownRestrictedIds.has(card.code) || (card.bestow && card.type_name !== 'Character');
           const cb = (checked, disabled) =>
             `<input type="checkbox"${checked ? ' checked' : ''}${disabled ? ' disabled' : ''}>`;
-          return `<tr data-code="${card.code}"${isEvent ? ' class="deck-table-disabled"' : ''}>
+          return `<tr data-code="${card.code}"${isDisabled ? ' class="deck-table-disabled"' : ''}>
             <td>${name}</td>
-            <td>${cb(isEconomy, isEvent).replace('<input', '<input class="economy-cb"')}</td>
-            <td>${cb(false, isEvent).replace('<input', '<input class="key-cb"')}</td>
-            <td>${cb(isAvoidable, isEvent).replace('<input', '<input class="avoidable-cb"')}</td>
-            <td>${cb(isRestricted, isEvent).replace('<input', '<input class="restricted-cb"')}</td>
+            <td>${cb(isEconomy, isDisabled).replace('<input', '<input class="economy-cb"')}</td>
+            <td>${cb(false, isDisabled).replace('<input', '<input class="key-cb"')}</td>
+            <td>${cb(isAvoidable, isDisabled).replace('<input', '<input class="avoidable-cb"')}</td>
+            <td>${cb(isRestricted, isDisabled).replace('<input', '<input class="restricted-cb"')}</td>
           </tr>`;
         }).join('');
 
