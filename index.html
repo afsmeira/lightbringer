@@ -1088,13 +1088,17 @@
           const cardsWithDetails = combo.map((card) => {
             const inShadow = !!card.shadow;
             if (card.is_unique && uniqueSeen.has(card.code)) {
+              // We're assuming shadow cards are always placed in shadows.
+              // So duplicates of shadow cards would also be placed in shadows.
+              // But that makes no sense since to get them out of shadows you would pay full price for a duplicate.
+              if (inShadow) return null;
               return { ...card, isDuplicate: true, effectiveCost: 0, inShadow };
             }
             if (card.is_unique) uniqueSeen.add(card.code);
             const cost = inShadow ? SHADOW_COST : card._cost;
             total += cost;
             return { ...card, isDuplicate: false, effectiveCost: cost, inShadow };
-          });
+          }).filter(c => c !== null);
 
           const limitedCount = cardsWithDetails.filter(c => c.is_limited).length;
           if (total <= SETUP_GOLD && limitedCount <= 1) {
@@ -1147,12 +1151,12 @@
                         - b.cards.filter(c => cardInSet(c, avoidSet)).length;
         if (avoidDiff !== 0) return avoidDiff;
 
-        // 7. more characters (non-duplicate, non-shadow) is better
-        const nonDupChars = cards => nonShadow(cards).filter(c => c.type_name === 'Character' && !c.isDuplicate);
+        // 7. more characters (non-duplicate) is better. Characters in shadow still count.
+        const nonDupChars = cards => cards.filter(c => c.type_name === 'Character' && !c.isDuplicate);
         const charDiff = nonDupChars(b.cards).length - nonDupChars(a.cards).length;
         if (charDiff !== 0) return charDiff;
 
-        // 8. higher total character strength is better
+        // 8. higher total character strength is better. Characters in shadow still count.
         const str = cards => nonDupChars(cards).reduce((s, c) => s + (c.strength || 0), 0);
         return str(b.cards) - str(a.cards);
       });
