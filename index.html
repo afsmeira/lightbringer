@@ -1337,7 +1337,7 @@
                         : c.isAvoidable ? 'sim-card-avoidable'
                         : c.inShadow    ? 'sim-card-shadow'
                         :                 'sim-card-normal';
-              const costLabel = c.isDup ? 'dup' : c.inShadow ? 'shadow' : c.cost + 'g';
+              const costLabel = c.isDup ? 'dup' : c.inShadow ? SHADOW_COST + 'g' : c.cost + 'g';
               return `<span class="${cls}">${c.name}<span class="sim-card-cost">(${costLabel})</span></span>`;
             }).join(sep)
           : `<span class="sim-no-setup">No valid setup</span>`;
