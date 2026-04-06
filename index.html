@@ -1337,6 +1337,7 @@
         const strengthDist  = new Array(31).fill(0); // indices 0-30 strength
         const keyCardsDist  = new Array(8).fill(0);  // indices 0-7 key cards
         const avoidableDist = new Array(8).fill(0);  // indices 0-7 avoidable cards
+        const shadowDist    = new Array(8).fill(0);  // indices 0-7 shadow cards
         const keySet            = getKeySet();
         const avoidSet          = getAvoidSet();
         const restrictedSet     = getRestrictedSet();
@@ -1374,6 +1375,7 @@
           if (totalStr < strengthDist.length) strengthDist[totalStr]++;
           keyCardsDist[best.cards.filter(c => cardInSet(c, keySet)).length]++;
           avoidableDist[best.cards.filter(c => cardInSet(c, avoidSet)).length]++;
+          shadowDist[best.cards.filter(c => c.inShadow).length]++;
           iconSetupCount++;
           for (const c of distinctChars) {
             const str = c.strength || 0;
@@ -1405,7 +1407,7 @@
         const iconStrengthAvg = iconStrengthTotals.map(t => iconSetupCount > 0 ? t / iconSetupCount : 0);
         const avgGold  = (totalGold  / SIM_COUNT).toFixed(2);
         const avgCards = (totalCards / SIM_COUNT).toFixed(2);
-        renderStats(poorCount, economyCount, limitedCount, mulliganCount, mulliganSuccessCount, avgGold, avgCards, goldDist, cardsDist, charsDist, strengthDist, keyCardsDist, avoidableDist, iconAvg, iconTotals, iconStrengthAvg, iconStrengthTotals, simLog);
+        renderStats(poorCount, economyCount, limitedCount, mulliganCount, mulliganSuccessCount, avgGold, avgCards, goldDist, cardsDist, charsDist, strengthDist, keyCardsDist, avoidableDist, shadowDist, iconAvg, iconTotals, iconStrengthAvg, iconStrengthTotals, simLog);
 
         document.getElementById('setup-section').scrollIntoView({ behavior: 'smooth' });
         btn.disabled = false;
@@ -1413,7 +1415,7 @@
       }, 0);
     }
 
-    function renderStats(poorCount, economyCount, limitedCount, mulliganCount, mulliganSuccessCount, avgGold, avgCards, goldDist, cardsDist, charsDist, strengthDist, keyCardsDist, avoidableDist, iconAvg, iconTotals, iconStrengthAvg, iconStrengthTotals, simLog) {
+    function renderStats(poorCount, economyCount, limitedCount, mulliganCount, mulliganSuccessCount, avgGold, avgCards, goldDist, cardsDist, charsDist, strengthDist, keyCardsDist, avoidableDist, shadowDist, iconAvg, iconTotals, iconStrengthAvg, iconStrengthTotals, simLog) {
       const pct = v => `${Math.round(v / SIM_COUNT * 100)}%`;
       const mulliganPct = mulliganCount > 0 ? `${Math.round(mulliganSuccessCount / mulliganCount * 100)}% of mulligans` : 'n/a';
       document.getElementById('stats-display').innerHTML = `
@@ -1460,6 +1462,7 @@
         ${trimAndRender(strengthDist,  'Character Strength',   i => String(i))}
         ${trimAndRender(keyCardsDist,  'Key Cards',  i => String(i))}
         ${trimAndRender(avoidableDist, 'Avoidable Cards', i => String(i))}
+        ${trimAndRender(shadowDist,    'Cards in Shadow',  i => String(i))}
         ${renderIconSpread(iconAvg,         iconTotals,         'Icon Spread')}
         ${renderIconSpread(iconStrengthAvg, iconStrengthTotals, 'Icon Strength')}
         ${renderSimLog(simLog)}`;
