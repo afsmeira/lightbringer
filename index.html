@@ -321,6 +321,17 @@
       border-bottom: none;
     }
 
+    .deck-table tr.deck-table-type-sep td {
+      font-size: 0.72rem;
+      font-family: sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #6a5030;
+      padding: 0.6rem 0.5rem 0.2rem;
+      border-bottom: 1px solid #2a1a08;
+      pointer-events: none;
+    }
+
     .deck-table tr.deck-table-disabled input[type="checkbox"] {
       border-color: #2a1a08;
       opacity: 0.35;
@@ -673,14 +684,14 @@
       <p style="font-size:0.85rem; color:#a89060; line-height:1.7; margin-bottom:0.75rem;">
         For each hand, every valid setup is evaluated.
         The <strong>best setup</strong> is selected according to a ranking that prioritises: avoiding poor setups,
-        maximising card count, key cards, virtual gold (cost + income), limited cards, and character strength.
+        maximising card count, key cards, virtual gold (cost + income provided), economy cards, and character strength.
         If the best setup is considered <strong>poor</strong> (failing any configured requirement), a
         <strong>mulligan</strong> is taken — a fresh hand is drawn and evaluated once more.
       </p>
       <p style="font-size:0.85rem; color:#a89060; line-height:1.7;">
         The results include summary statistics, several distribution charts, and a log of the first 100 simulated hands.
-        Use the <strong>Configuration</strong> section below to define what counts as a poor setup, and to mark
-        economy, key, avoidable, and restricted cards.
+        Use the <strong>Configuration</strong> section below to define what counts as a poor setup, to mark
+        economy, key, avoidable, and restricted cards, and to re-define how setups are ranked.
       </p>
     </details>
   </div>
@@ -1761,6 +1772,7 @@
         const knownEconomyIds    = new Set([...knowEconomyCards].map(e => e.id));
         const knownAvoidableIds  = new Set([...knownAvoidableCards].map(e => e.id));
         const knownRestrictedIds = new Set([...knownRestrictedCards].map(e => e.id));
+        let lastType = null;
         const trs = rows.map(({ card, qty }) => {
           const name = qty > 1 ? `${card.name} ×${qty}` : card.name;
           const isEvent = card.type_name === 'Event';
@@ -1770,7 +1782,11 @@
           const isRestricted  = knownRestrictedIds.has(card.code) || (card.bestow && card.type_name !== 'Character');
           const cb = (checked, disabled) =>
             `<input type="checkbox"${checked ? ' checked' : ''}${disabled ? ' disabled' : ''}>`;
-          return `<tr data-code="${card.code}"${isDisabled ? ' class="deck-table-disabled"' : ''}>
+          const separator = card.type_name !== lastType
+            ? `<tr class="deck-table-type-sep"><td colspan="5">${card.type_name}</td></tr>`
+            : '';
+          lastType = card.type_name;
+          return `${separator}<tr data-code="${card.code}"${isDisabled ? ' class="deck-table-disabled"' : ''}>
             <td>${name}</td>
             <td>${cb(isEconomy, isDisabled).replace('<input', '<input class="economy-cb"')}</td>
             <td>${cb(false, isDisabled).replace('<input', '<input class="key-cb"')}</td>
