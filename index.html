@@ -432,6 +432,64 @@
       background: #1e0a0a;
     }
 
+    /* Sort criteria list */
+    #sort-criteria-list {
+      list-style: none;
+      margin: 0.75rem 0 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .sort-criterion {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: #120c04;
+      border: 1px solid #3a2808;
+      border-radius: 4px;
+      padding: 0.4rem 0.7rem;
+      cursor: grab;
+      user-select: none;
+      color: #c8b880;
+      font-size: 0.88rem;
+    }
+
+    .sort-criterion:active { cursor: grabbing; }
+
+    .sort-criterion.drag-over {
+      border-color: #c9952a;
+      background: #1e1408;
+    }
+
+    .sort-criterion-rank {
+      font-family: sans-serif;
+      font-size: 0.78rem;
+      color: #6a5030;
+      min-width: 1.2em;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .sort-criterion-handle {
+      color: #4a3510;
+      font-size: 1rem;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .sort-criterion-label {
+      flex: 1;
+    }
+
+    .sort-criterion-hint {
+      font-size: 0.75rem;
+      color: #6a5030;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
     /* Stats */
     .stats-grid {
       display: grid;
@@ -680,6 +738,14 @@
           </div>
         </div>
       </div><!-- /config-details-body -->
+    </details>
+
+    <details id="sort-details" open style="margin-top:1.25rem; display:none;">
+      <summary style="cursor:pointer; color:#c9952a; font-size:1.1rem; font-family:'Georgia',serif; letter-spacing:0.03em; user-select:none;">Setup Ranking Criteria</summary>
+      <div class="details-body">
+        <p style="font-size:0.82rem; color:#6a5030; margin:0.5rem 0 0 0;">All possible setups for a given starting hand are ranked according to this criteria, which are applied top to bottom — the first differentiating criterion wins. Drag to re-order.</p>
+        <ol id="sort-criteria-list"></ol>
+      </div>
     </details>
 
     <div style="margin-top:1.25rem; display:none; text-align:center;" id="analyze-btn-wrapper">
@@ -1114,55 +1180,140 @@
       return results;
     }
 
+    const SORT_CRITERIA = [
+      {
+        id: 'poor',
+        label: 'Not poor',
+        hint: null,
+        compare(a, b) {
+          return (isPoorSetup(a.cards) ? 1 : 0) - (isPoorSetup(b.cards) ? 1 : 0);
+        }
+      },
+      {
+        id: 'card-count',
+        label: 'Number of cards',
+        hint: 'More is better',
+        compare(a, b) {
+          return b.cards.length - a.cards.length;
+        }
+      },
+      {
+        id: 'key-cards',
+        label: '🗝️ Number of key cards',
+        hint: 'More is better',
+        compare(a, b) {
+          const keySet = getKeySet();
+          return b.cards.filter(c => cardInSet(c, keySet)).length
+               - a.cards.filter(c => cardInSet(c, keySet)).length;
+        }
+      },
+      {
+        id: 'virtual-gold',
+        label: 'Total virtual gold — card cost + income provided',
+        hint: 'More is better',
+        compare(a, b) {
+          const vg = cards => cards.reduce((sum, c) => {
+            if (c.isDuplicate) return sum;
+            return sum + c.effectiveCost + (c.income_modifier > 0 ? c.income_modifier : 0);
+          }, 0);
+          return vg(b.cards) - vg(a.cards);
+        }
+      },
+      {
+        id: 'economy',
+        label: '💰 Number of economy cards',
+        hint: 'More is better',
+        compare(a, b) {
+          return b.cards.filter(c => c.is_economy).length
+               - a.cards.filter(c => c.is_economy).length;
+        }
+      },
+      {
+        id: 'avoidable',
+        label: '😐 Number of avoidable cards',
+        hint: 'Fewer is better',
+        compare(a, b) {
+          const avoidSet = getAvoidSet();
+          return a.cards.filter(c => cardInSet(c, avoidSet)).length
+               - b.cards.filter(c => cardInSet(c, avoidSet)).length;
+        }
+      },
+      {
+        id: 'char-count',
+        label: 'Number of non-duplicate characters',
+        hint: 'More is better',
+        compare(a, b) {
+          const ndc = cards => cards.filter(c => c.type_name === 'Character' && !c.isDuplicate);
+          return ndc(b.cards).length - ndc(a.cards).length;
+        }
+      },
+      {
+        id: 'char-strength',
+        label: 'Total character strength',
+        hint: 'More is better',
+        compare(a, b) {
+          const ndc = cards => cards.filter(c => c.type_name === 'Character' && !c.isDuplicate);
+          const str = cards => ndc(cards).reduce((s, c) => s + (c.strength || 0), 0);
+          return str(b.cards) - str(a.cards);
+        }
+      },
+    ];
+
+    let sortCriteriaOrder = SORT_CRITERIA.map((_, i) => i);
+
+    function renderSortCriteria() {
+      const list = document.getElementById('sort-criteria-list');
+      if (!list) return;
+      list.innerHTML = sortCriteriaOrder.map((criterionIdx, rank) => {
+        const c = SORT_CRITERIA[criterionIdx];
+        return `<li class="sort-criterion" draggable="true" data-rank="${rank}" data-idx="${criterionIdx}">
+          <span class="sort-criterion-rank">${rank + 1}.</span>
+          <span class="sort-criterion-handle">⠿</span>
+          <span class="sort-criterion-label">${c.label}</span>
+          ${c.hint ? `<span class="sort-criterion-hint">${c.hint}</span>` : ''}
+        </li>`;
+      }).join('');
+
+      let dragSrcRank = null;
+
+      list.querySelectorAll('.sort-criterion').forEach(item => {
+        item.addEventListener('dragstart', e => {
+          dragSrcRank = parseInt(item.dataset.rank);
+          e.dataTransfer.effectAllowed = 'move';
+        });
+        item.addEventListener('dragover', e => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          list.querySelectorAll('.sort-criterion').forEach(i => i.classList.remove('drag-over'));
+          item.classList.add('drag-over');
+        });
+        item.addEventListener('dragleave', () => {
+          item.classList.remove('drag-over');
+        });
+        item.addEventListener('drop', e => {
+          e.preventDefault();
+          item.classList.remove('drag-over');
+          const destRank = parseInt(item.dataset.rank);
+          if (dragSrcRank === null || dragSrcRank === destRank) return;
+          const moved = sortCriteriaOrder.splice(dragSrcRank, 1)[0];
+          sortCriteriaOrder.splice(destRank, 0, moved);
+          dragSrcRank = null;
+          renderSortCriteria();
+        });
+        item.addEventListener('dragend', () => {
+          list.querySelectorAll('.sort-criterion').forEach(i => i.classList.remove('drag-over'));
+          dragSrcRank = null;
+        });
+      });
+    }
+
     function sortSetups(setups) {
-      const keySet = getKeySet();
-      
-      const virtualGold = cards => cards.reduce((sum, c) => {
-        if (c.isDuplicate) return sum;
-        return sum + c.effectiveCost + (c.income_modifier > 0 ? c.income_modifier : 0);
-      }, 0);
-      
       return setups.slice().sort((a, b) => {
-        // 1. non-poor first
-        const poorDiff = (isPoorSetup(a.cards) ? 1 : 0) - (isPoorSetup(b.cards) ? 1 : 0);
-        if (poorDiff !== 0) return poorDiff;
-        
-        // 2. more cards is better (shadow cards count)
-        if (b.cards.length !== a.cards.length) return b.cards.length - a.cards.length;
-        
-        // 3. more key cards is better (shadow cards count)
-        const keyDiff = b.cards.filter(c => cardInSet(c, keySet)).length
-        - a.cards.filter(c => cardInSet(c, keySet)).length;
-        if (keyDiff !== 0) return keyDiff;
-        
-        // 4. higher virtual gold is better
-        const vgDiff = virtualGold(b.cards) - virtualGold(a.cards);
-        if (vgDiff !== 0) return vgDiff;
-        
-        const nonShadow = cards => cards.filter(c => !c.inShadow);
-        // 5. has a limited card (non-shadow) is better
-        const limDiff = (nonShadow(b.cards).some(c => c.is_limited) ? 1 : 0)
-                      - (nonShadow(a.cards).some(c => c.is_limited) ? 1 : 0);
-        if (limDiff !== 0) return limDiff;
-
-        // 6. fewer avoidable cards is better (shadow cards count)
-        const avoidSet = getAvoidSet();
-        const avoidDiff = a.cards.filter(c => cardInSet(c, avoidSet)).length
-                        - b.cards.filter(c => cardInSet(c, avoidSet)).length;
-        if (avoidDiff !== 0) return avoidDiff;
-
-        // 7. more characters (non-duplicate) is better.
-        // Characters in shadow still count, even though they are not really in play.
-        // This helps to differentiate between setups w/ a lot of shadow cards.
-        const nonDupChars = cards => cards.filter(c => c.type_name === 'Character' && !c.isDuplicate);
-        const charDiff = nonDupChars(b.cards).length - nonDupChars(a.cards).length;
-        if (charDiff !== 0) return charDiff;
-
-        // 8. higher total character strength is better.
-        // Characters in shadow still count, even though they are not really in play.
-        // This helps to differentiate between setups w/ a lot of shadow cards.
-        const str = cards => nonDupChars(cards).reduce((s, c) => s + (c.strength || 0), 0);
-        return str(b.cards) - str(a.cards);
+        for (const idx of sortCriteriaOrder) {
+          const diff = SORT_CRITERIA[idx].compare(a, b);
+          if (diff !== 0) return diff;
+        }
+        return 0;
       });
     }
 
@@ -1582,7 +1733,7 @@
       const details  = document.getElementById('deck-table-details');
       const btn = document.getElementById('analyze-btn');
       const btnWrapper = document.getElementById('analyze-btn-wrapper');
-      if (!deckId) { section.innerHTML = ''; details.style.display = 'none'; document.getElementById('config-details').style.display = 'none'; btnWrapper.style.display = 'none'; setStatus(''); return; }
+      if (!deckId) { section.innerHTML = ''; details.style.display = 'none'; document.getElementById('config-details').style.display = 'none'; document.getElementById('sort-details').style.display = 'none'; btnWrapper.style.display = 'none'; setStatus(''); return; }
 
       setStatus('Loading deck data…', 'loading');
       try {
@@ -1602,7 +1753,7 @@
             return ta !== tb ? ta - tb : a.card.name.localeCompare(b.card.name);
           });
 
-        if (rows.length === 0) { section.innerHTML = ''; details.style.display = 'none'; document.getElementById('config-details').style.display = 'none'; btnWrapper.style.display = 'none'; return; }
+        if (rows.length === 0) { section.innerHTML = ''; details.style.display = 'none'; document.getElementById('config-details').style.display = 'none'; document.getElementById('sort-details').style.display = 'none'; btnWrapper.style.display = 'none'; return; }
 
         const knownEconomyIds    = new Set([...knowEconomyCards].map(e => e.id));
         const knownAvoidableIds  = new Set([...knownAvoidableCards].map(e => e.id));
@@ -1646,12 +1797,15 @@
         details.style.display = '';
         details.setAttribute('open', '');
         document.getElementById('config-details').style.display = '';
+        document.getElementById('sort-details').style.display = '';
+        renderSortCriteria();
         btnWrapper.style.display = '';
       } catch (err) {
         setStatus(`Error: ${err.message}`, 'error');
         section.innerHTML = '';
         details.style.display = 'none';
         document.getElementById('config-details').style.display = 'none';
+        document.getElementById('sort-details').style.display = 'none';
         btnWrapper.style.display = 'none';
       }
     }
