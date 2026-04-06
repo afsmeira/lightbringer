@@ -321,6 +321,40 @@
       border-bottom: none;
     }
 
+    #card-image-tooltip {
+      position: fixed;
+      z-index: 9999;
+      pointer-events: none;
+      display: none;
+      border: 1px solid #4a3510;
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.7);
+      width: 200px;
+    }
+
+    #card-image-tooltip img {
+      display: block;
+      width: 200px;
+    }
+
+    #card-image-tooltip .card-img-skeleton {
+      width: 200px;
+      height: 280px;
+      background: linear-gradient(90deg, #1a1008 25%, #2a1c08 50%, #1a1008 75%);
+      background-size: 200% 100%;
+      animation: skeleton-sweep 1.2s ease-in-out infinite;
+    }
+
+    @keyframes skeleton-sweep {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    .deck-table-card-name {
+      cursor: default;
+    }
+
     .deck-table tr.deck-table-type-sep td {
       font-size: 0.72rem;
       font-family: sans-serif;
@@ -763,6 +797,8 @@
       <button id="analyze-btn" onclick="analyze()" style="font-size:1rem; padding:0.6rem 0; width:60%;">Analyze</button>
     </div>
   </div>
+
+  <div id="card-image-tooltip"><div class="card-img-skeleton"></div><img src="" alt="" style="display:none;"></div>
 
   <div id="setup-section">
     <div class="panel">
@@ -1787,7 +1823,7 @@
             : '';
           lastType = card.type_name;
           return `${separator}<tr data-code="${card.code}"${isDisabled ? ' class="deck-table-disabled"' : ''}>
-            <td>${name}</td>
+            <td class="deck-table-card-name" data-img="${card.image_url || ''}">${name}</td>
             <td>${cb(isEconomy, isDisabled).replace('<input', '<input class="economy-cb"')}</td>
             <td>${cb(false, isDisabled).replace('<input', '<input class="key-cb"')}</td>
             <td>${cb(isAvoidable, isDisabled).replace('<input', '<input class="avoidable-cb"')}</td>
@@ -1832,6 +1868,55 @@
     document.getElementById('cfg-min-cards').addEventListener('input', function () {
       document.getElementById('cfg-min-cards-val').textContent = this.value;
     });
+
+    // Card image tooltip
+    {
+      const tooltip    = document.getElementById('card-image-tooltip');
+      const skeleton   = tooltip.querySelector('.card-img-skeleton');
+      const tooltipImg = tooltip.querySelector('img');
+      const MARGIN = 12;
+
+      function showSkeleton() {
+        skeleton.style.display = 'block';
+        tooltipImg.style.display = 'none';
+      }
+
+      function showImage() {
+        skeleton.style.display = 'none';
+        tooltipImg.style.display = 'block';
+      }
+
+      tooltipImg.addEventListener('load',  showImage);
+      tooltipImg.addEventListener('error', showImage);
+
+      document.addEventListener('mouseover', e => {
+        const td = e.target.closest('.deck-table-card-name');
+        if (!td || !td.dataset.img) return;
+        showSkeleton();
+        tooltipImg.src = td.dataset.img;
+        tooltip.style.display = 'block';
+      });
+
+      document.addEventListener('mousemove', e => {
+        if (tooltip.style.display !== 'block') return;
+        const tw = tooltip.offsetWidth;
+        const th = tooltip.offsetHeight;
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        let x = e.clientX + MARGIN;
+        let y = e.clientY + MARGIN;
+        if (x + tw > vw) x = e.clientX - tw - MARGIN;
+        if (y + th > vh) y = e.clientY - th - MARGIN;
+        tooltip.style.left = x + 'px';
+        tooltip.style.top  = y + 'px';
+      });
+
+      document.addEventListener('mouseout', e => {
+        if (!e.target.closest('.deck-table-card-name')) return;
+        tooltip.style.display = 'none';
+        tooltipImg.src = '';
+      });
+    }
   </script>
 
 </body>
