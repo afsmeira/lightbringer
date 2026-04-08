@@ -1810,7 +1810,7 @@
         const knownRestrictedIds = new Set([...knownRestrictedCards].map(e => e.id));
         let lastType = null;
         const trs = rows.map(({ card, qty }) => {
-          const name = qty > 1 ? `${card.name} ×${qty}` : card.name;
+          const name = qty > 1 ? `${card.label || card.name} ×${qty}` : (card.label || card.name);
           const isEvent = card.type_name === 'Event';
           const isDisabled    = isEvent && !card.shadow;
           const isEconomy     = card.is_limited || card.income_modifier > 0 || knownEconomyIds.has(card.code);
