@@ -321,6 +321,49 @@
       border-bottom: none;
     }
 
+    @font-face {
+      font-family: 'thronesdb';
+      src: url('https://raw.githubusercontent.com/ThronesDB/thronesdb/master/public/fonts/thronesdb.eot?irjt2b');
+      src: url('https://raw.githubusercontent.com/ThronesDB/thronesdb/master/public/fonts/thronesdb.eot?irjt2b#iefix') format('embedded-opentype'),
+           url('https://raw.githubusercontent.com/ThronesDB/thronesdb/master/public/fonts/thronesdb.ttf?irjt2b') format('truetype'),
+           url('https://raw.githubusercontent.com/ThronesDB/thronesdb/master/public/fonts/thronesdb.woff?irjt2b') format('woff'),
+           url('https://raw.githubusercontent.com/ThronesDB/thronesdb/master/public/fonts/thronesdb.svg?irjt2b#thronesdb') format('svg');
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    [class^="icon-"], [class*=" icon-"] {
+      font-family: 'thronesdb';
+
+      font-style: normal;
+      font-weight: normal;
+      font-variant: normal;
+      text-transform: none;
+      line-height: 1;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .icon-character::before    { content: "\e60f"; }
+    .icon-attachment::before   { content: "\e60d"; }
+    .icon-location::before     { content: "\e60e"; }
+    .icon-event::before        { content: "\e610"; }
+    .icon-stark::before        { content: "\e608"; }
+    .icon-lannister::before    { content: "\e603"; }
+    .icon-targaryen::before    { content: "\e609"; }
+    .icon-baratheon::before    { content: "\e600"; }
+    .icon-greyjoy::before      { content: "\e601"; }
+    .icon-tyrell::before       { content: "\e60a"; }
+    .icon-thenightswatch::before { content: "\e606"; }
+    .icon-martell::before      { content: "\e604"; }
+    .icon-neutral::before      { content: "\e612"; }
+
+    .deck-table-card-name .card-type-icon {
+      margin-right: 0.4em;
+      color: #6a5030;
+      font-size: 0.95em;
+    }
+
     #card-image-tooltip {
       position: fixed;
       z-index: 9999;
@@ -743,6 +786,7 @@
       <button id="load-deck-btn" onclick="fetchAndRenderDeckTable()">Load</button>
     </div>
     <div id="status"></div>
+    <div id="deck-title" style="display:none; align-items:center; justify-content:center; gap:0.5rem; margin-top:0.75rem;"></div>
 
     <details id="deck-table-details" style="margin-top:1rem; display:none;">
       <summary style="cursor:pointer; color:#c9952a; font-size:1.1rem; font-family:'Georgia',serif; letter-spacing:0.03em; user-select:none;">Cards</summary>
@@ -1775,6 +1819,30 @@
       document.getElementById('load-deck-btn').disabled = locked;
     }
 
+    const FACTION_COLORS = {
+      stark:         '#cfcfcf',
+      lannister:     '#c00106',
+      targaryen:     '#9c6b9e',
+      baratheon:     '#e3d852',
+      greyjoy:       '#1d7a99',
+      tyrell:        '#509f16',
+      thenightswatch:'#7a7a7a',
+      martell:       '#e89521',
+      neutral:       '#a99560',
+    };
+
+    const FACTION_NAMES = {
+      stark:          "House Stark",
+      lannister:      "House Lannister",
+      targaryen:      "House Targaryen",
+      baratheon:      "House Baratheon",
+      greyjoy:        "House Greyjoy",
+      tyrell:         "House Tyrell",
+      thenightswatch: "The Night's Watch",
+      martell:        "House Martell",
+      neutral:        "Neutral",
+    };
+
     async function fetchAndRenderDeckTable() {
       document.getElementById('setup-section').style.display = 'none';
       const urlInput = document.getElementById('deck-url').value;
@@ -1783,7 +1851,7 @@
       const details  = document.getElementById('deck-table-details');
       const btn = document.getElementById('analyze-btn');
       const btnWrapper = document.getElementById('analyze-btn-wrapper');
-      if (!deckId) { section.innerHTML = ''; details.style.display = 'none'; document.getElementById('config-details').style.display = 'none'; document.getElementById('sort-details').style.display = 'none'; btnWrapper.style.display = 'none'; setStatus(''); return; }
+      if (!deckId) { section.innerHTML = ''; details.style.display = 'none'; document.getElementById('config-details').style.display = 'none'; document.getElementById('sort-details').style.display = 'none'; btnWrapper.style.display = 'none'; document.getElementById('deck-title').style.display = 'none'; setStatus(''); return; }
 
       setStatus('Loading deck data…', 'loading');
       try {
@@ -1803,7 +1871,7 @@
             return ta !== tb ? ta - tb : a.card.name.localeCompare(b.card.name);
           });
 
-        if (rows.length === 0) { section.innerHTML = ''; details.style.display = 'none'; document.getElementById('config-details').style.display = 'none'; document.getElementById('sort-details').style.display = 'none'; btnWrapper.style.display = 'none'; return; }
+        if (rows.length === 0) { section.innerHTML = ''; details.style.display = 'none'; document.getElementById('config-details').style.display = 'none'; document.getElementById('sort-details').style.display = 'none'; btnWrapper.style.display = 'none'; document.getElementById('deck-title').style.display = 'none'; return; }
 
         const knownEconomyIds    = new Set([...knowEconomyCards].map(e => e.id));
         const knownAvoidableIds  = new Set([...knownAvoidableCards].map(e => e.id));
@@ -1823,13 +1891,31 @@
             : '';
           lastType = card.type_name;
           return `${separator}<tr data-code="${card.code}"${isDisabled ? ' class="deck-table-disabled"' : ''}>
-            <td class="deck-table-card-name" data-img="${card.image_url || ''}">${name}</td>
+            <td class="deck-table-card-name" data-img="${card.image_url || ''}"><span class="card-type-icon icon-${card.type_name.toLowerCase()}" style="color:${FACTION_COLORS[card.faction_code] || '#6a5030'}"></span>${name}</td>
             <td>${cb(isEconomy, isDisabled).replace('<input', '<input class="economy-cb"')}</td>
             <td>${cb(false, isDisabled).replace('<input', '<input class="key-cb"')}</td>
             <td>${cb(isAvoidable, isDisabled).replace('<input', '<input class="avoidable-cb"')}</td>
             <td>${cb(isRestricted, isDisabled).replace('<input', '<input class="restricted-cb"')}</td>
           </tr>`;
         }).join('');
+
+        const factionColor = FACTION_COLORS[decklist.faction_code] || '#6a5030';
+        const factionName  = FACTION_NAMES[decklist.faction_code] || decklist.faction_code;
+        const agendaNames  = Object.entries(slots)
+          .filter(([code]) => cardMap[code]?.type_name === 'Agenda')
+          .map(([code]) => cardMap[code].label || cardMap[code].name)
+          .join(' · ');
+        const subtitle = agendaNames ? `${factionName} · ${agendaNames}` : factionName;
+        const deckTitleEl = document.getElementById('deck-title');
+        deckTitleEl.innerHTML = `
+          <div style="display:flex; flex-direction:column; align-items:center; gap:0.25rem;">
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+              <span class="icon-${decklist.faction_code}" style="font-family:'thronesdb'; font-size:1.4rem; color:${factionColor}; line-height:1;"></span>
+              <span style="font-family:'Georgia',serif; font-size:1.1rem; color:#e8d5a3;">${decklist.name}</span>
+            </div>
+            <div style="font-size:0.82rem; color:#6a5030;">${subtitle}</div>
+          </div>`;
+        deckTitleEl.style.display = 'flex';
 
         section.innerHTML = `
           <div style="font-size:0.78rem; color:#6a5030; line-height:1.8; margin-bottom:0.75rem; margin-top:0.75rem;">
@@ -1862,6 +1948,7 @@
         document.getElementById('config-details').style.display = 'none';
         document.getElementById('sort-details').style.display = 'none';
         btnWrapper.style.display = 'none';
+        document.getElementById('deck-title').style.display = 'none';
       }
     }
 
