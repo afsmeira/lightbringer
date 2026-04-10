@@ -1010,14 +1010,16 @@
       {"id":"02116", "name":"Imprisioned"}, // Should be caught by attachment restrictions during setup simulation
       {"id":"03021", "name":"Frozen Solid"},
       {"id":"03025", "name":"Motley"}, // Should be caught by attachment restrictions during setup simulation
+      {"id":"04026", "name":"Craven"},
       {"id":"04048", "name":"Visited by Shadows"}, // Should be caught by attachment restrictions during setup simulation
       {"id":"04098", "name":"The Frostfangs"},
       {"id":"06022", "name":"Marriage Pact"},
       {"id":"06116", "name":"Locked Away"},
       {"id":"07032", "name":"Lingering Venom"},
       {"id":"08009", "name":"Taritor to the Crown"}, // Should be caught by attachment restrictions during setup simulation
-      {"id":"08078", "name":"Secret Pact"},
+      {"id":"08078", "name":"Seized by the Guard"},
       {"id":"09043", "name":"Strangler"},
+      {"id":"10021", "name":"Beguiled"},
       {"id":"10032", "name":"Turncloak"},
       {"id":"10032", "name":"Reckless"},
       {"id":"14021", "name":"Hunting Accident"},
@@ -1026,11 +1028,161 @@
       {"id":"16022", "name":"Sky Cell"},
       {"id":"17126", "name":"Ward"},
       {"id":"17134", "name":"Crown of Gold"},
+      {"id":"25030", "name":"Insubordination"},
+      {"id":"25059", "name":"Greyscale"},
       {"id":"25062", "name":"Martial Law"},
       {"id":"26002", "name":"Roast Boar"}, // Should be caught by attachment restrictions during setup simulation
       {"id":"26086", "name":"Slander and Lies"}, // Should be caught by attachment restrictions during setup simulation
       {"id":"26094", "name":"Poisoned Locusts"}, // Should be caught by attachment restrictions during setup simulation
       {"id":"26113", "name":"War Elephants"},
+    ])
+    // Format
+    // {
+    //   "traits": [string]          -- When defined, can only be attached to cards that have at least one of the traits
+    //   "excluded_traits": [string] -- When defined, can only be attached to cards that don't have any of the traits.
+    //   "factions": [string]        -- When defined, can only be attached to cards that belong to one of the factions.
+    //   "opponent": boolean         -- when defined, can only be attached to opponent's cards, if true, or just the player cards, if false.
+    //   "title": string             -- When defined, can only be attached to card with specified title.
+    //   "cost": [int]               -- When defined, can only be attached to card with specified costs.
+    //   "unique": boolean           -- When defined, can only be attached to a unique card, if true, or non-unique if false.
+    //   "limited": boolean          -- When defined, can only be attached to a limited card, if true, or non-limited if false.
+    //   "location": boolean         -- When defined, can only be attached to a location card, if true, or non-location if false.
+    //   "loyal": boolean            -- When defined, can only be attached to a non-loyal character, if true, or loyal if false.
+    //   "shadow": boolean           -- When defined, can only be attached to characters with shadow, if true, or without shadow if false.
+    //   "limit": int                -- When defined, can only be attached to the same character the limit number of times.
+    // }
+    const attachmentWithRestrictions = new Set([
+      {"id":"01032", "name":"Seal of the Hand", "traits": ["lord", "lady"]}, // OR
+      {"id":"01032", "name":"Bodyguard", "traits": ["lord", "lady"]}, // OR
+      {"id":"01058", "name":"Lightbringer", "factions": ["baratheon"]},
+      {"id":"01077", "name":"Throwing Axe", "traits": ["ironborn"]},
+      {"id":"01135", "name":"Longclaw", "factions": ["the night's watch"]},
+      {"id":"01153", "name":"Ice", "factions": ["stark"]},
+      {"id":"01172", "name":"Drogo's Arakh", "traits": ["dothraki"]},
+      {"id":"01191", "name":"Heartsbane", "factions": ["tyrell"]},
+      {"id":"02004", "name":"Lady", "factions": ["stark"]},
+      {"id":"02044", "name":"Mare in Heat", "traits": ["dothraki"]},
+      {"id":"02046", "name":"Practice Blade", "factions": ["the night's watch"]},
+      {"id":"02052", "name":"Fishing Net", "opponent": true},
+      {"id":"02054", "name":"The Silver Steed", "traits": ["dothraki"], "title": "Daenerys Targaryen"}, // OR
+      {"id":"02055", "name":"Attainted", "opponent": true},
+      {"id":"02071", "name":"Paid Off", "opponent": true},
+      {"id":"02077", "name":"Condemned", "opponent": true},
+      {"id":"02088", "name":"Stinking Drunk", "opponent": true},
+      {"id":"02102", "name":"Ward", "cost": [4, 3, 2, 1, 0]},
+      {"id":"02112", "name":"Drowned God's Blessing", "factions": ["greyjoy"]},
+      {"id":"02116", "name":"Imprisioned", "opponent": true},
+      {"id":"02117", "name":"Maester's Chain", "traits": ["maester"]},
+      {"id":"03019", "name":"Nymeria", "unique": true, "factions": ["stark"]}, // AND
+      {"id":"03020", "name":"Needle", "factions": ["stark"]},
+      {"id":"03021", "name":"Frozen Solid", "limited": false, "location": true, "cost": [3, 2, 1, 0]}, // AND cost lower
+      {"id":"03025", "name":"Motley", "opponent": true},
+      {"id":"04009", "name":"Ruby of R'hllor", "traits": ["r'hllor"]},
+      {"id":"04030", "name":"The Boy King", "traits": ["lord"]},
+      {"id":"04034", "name":"Beggar King", "factions": ["targaryen"]},
+      {"id":"04036", "name":"Venomous Blade", "factions": ["martell"]},
+      {"id":"04044", "name":"Crown of Golden Roses", "traits": ["lord"]},
+      {"id":"04048", "name":"Visited by Shadows", "opponent": true},
+      {"id":"04052", "name":"King of Salt and Rock", "traits": ["ironborn"]},
+      {"id":"04062", "name":"The Wolf King", "factions": ["stark"]},
+      {"id":"04079", "name":"King Beyond the Wall", "traits": ["wildling"]},
+      {"id":"04086", "name":"Dragonglass Dagger", "factions": ["the night's watch"]},
+      {"id":"04094", "name":"Mother of Dragons", "traits": ["stormborn"]},
+      {"id":"05020", "name":"Shield of Lannisport","factions": ["lannister"], "traits": ["lord", "lady"]}, // AND or on traits
+      {"id":"05026", "name":"Disputed Claim", "traits": ["bastard", "lord", "lady"]}, // OR
+      {"id":"05036", "name":"Daenery's Favor", "factions": ["targaryen"]},
+      {"id":"05043", "name":"Appointed", "unique": true},
+      {"id":"06028", "name":"Light of the Lord", "factions": ["baratheon"], "traits": ["r'hllor"]}, // OR
+      {"id":"06044", "name":"Silver Hair Net", "traits": ["lady"]},
+      {"id":"06050", "name":"Fever Dreams", "opponent": true},
+      {"id":"06052", "name":"Corsair's Dirk", "traits": ["ironborn"]},
+      {"id":"06066", "name":"Improved Fortifications", "location": true},
+      {"id":"06074", "name":"Breaker of Chains", "unique": true, "factions": ["targaryen"]}, // AND
+      {"id":"06106", "name":"Ranger's Bow", "factions": ["the night's watch"]},
+      {"id":"06108", "name":"King's Blood", "traits": ["bastard", "king"]},
+      {"id":"06114", "name":"Warrior's Braid", "factions": ["targaryen"]},
+      {"id":"07021", "name":"Ghost", "factions": ["the night's watch", "stark"]}, // OR
+      {"id":"07034", "name":"Summer", "unique": true, "factions": ["stark"]}, // AND
+      {"id":"07043", "name":"Weirwood Bow", "factions": ["the night's watch"], "traits": ["wildling"]}, // OR
+      {"id":"08001", "name":"Archmaester's Key", "traits": ["maester"]},
+      {"id":"08009", "name":"Traitor to the Crown", "opponent": true},
+      {"id":"08015", "name":"Bloody Arakh", "traits": ["dothraki"]},
+      {"id":"08030", "name":"Kingslayer", "traits": ["kingsguard"]},
+      {"id":"08056", "name":"Sand Steed", "limit": 1},
+      {"id":"08078", "name":"Seized by the Guard", "limited": false, "location": true}, // AND
+      {"id":"08090", "name":"Ser Pounce", "unique": true, "cost": [3, 2, 1, 0]}, // AND cost lower
+      {"id":"08094", "name":"Mhysa", "traits": ["lady"]},
+      {"id":"08096", "name":"Secret Pact", "opponent": true}, // Not true actually
+      {"id":"08108", "name":"King at the Wall", "unique": true, "factions": ["baratheon"]}, // AND
+      {"id":"08112", "name":"Driftwood Cudgel", "traits": ["drowned god"]},
+      {"id":"09020", "name":"Queen of the Seven Kingdoms", "traits": ["lady"]},
+      {"id":"09021", "name":"Tourney Lance", "traits": ["knight"]},
+      {"id":"09030", "name":"Lion's Tooth", "unique": true, "factions": ["lannister"]}, // AND
+      {"id":"09038", "name":"Tokar", "factions": ["targaryen"]},
+      {"id":"10028", "name":"Plundered", "opponent": true, "location": true}, // AND
+      {"id":"10032", "name":"Turncloack", "loyal": false},
+      {"id":"10038", "name":"Beacon of the South", "factions": ["tyrell"]},
+      {"id":"10043", "name":"Brother's Robes", "traits": ["the seven"]},
+      {"id":"11046", "name":"Miner's Pick", "traits": ["builder", "steward"]},
+      {"id":"11054", "name":"Queensguard", "excluded_traits": ["lady"]},
+      {"id":"11062", "name":"Shaggydog", "factions": ["stark"]},
+      {"id":"11066", "name":"Lord Commander", "factions": ["the night's watch"], "cost": [5, 6, 7, 8, 9, 10]}, // AND cost higher
+      {"id":"11116", "name":"Blood of the Viper", "traits": ["sand snake"]},
+      {"id":"12021", "name":"Red Rain", "unique": true, "factions": ["greyjoy"]}, // AND
+      {"id":"12030", "name":"The Bloodroyal", "factions": ["martell"]},
+      {"id":"13030", "name":"Pyromancer's Cache", "location": true},
+      {"id":"13044", "name":"Unexpected Guile", "shadow": true},
+      {"id":"13046", "name":"Guard Duty", "factions": ["the night's watch"]},
+      {"id":"13052", "name":"Outfitted for War", "traits": ["warship"], "location": true}, // AND
+      {"id":"13074", "name":"Dragon Skull", "factions": ["targaryen"]},
+      {"id":"13098", "name":"White Cloak", "traits": ["knight"]},
+      {"id":"13108", "name":"Long May He Reign", "traits": ["king"]},
+      {"id":"14020", "name":"Azor Ahai Reborn", "unique": true},
+      {"id":"14036", "name":"Dothraki Steed", "limit": 1},
+      {"id":"15019", "name":"Khaleesi", "traits": ["lady"]},
+      {"id":"15034", "name":"Cage of Ravens", "traits": ["steward"]},
+      {"id":"15038", "name":"Champion's Favor", "traits": ["lady"]},
+      {"id":"15043", "name":"Water Dancer's Sword", "cost": 3}, // cost lower
+      {"id":"16004", "name":"Conquer", "unique": false, "location": true}, // AND
+      {"id":"17126", "name":"Ward", "unique": true, "cost": [4, 3, 2, 1, 0]}, // AND cost lower
+      {"id":"17139", "name":"Unexpected Guile", "shadow": true},
+      {"id":"20013", "name":"Mountain's Man", "factions": ["lannister"]},
+      {"id":"20018", "name":"Sword of the Morning", "unique": true, "faction": "martell", "traits": ["house dayne"]}, // AND or traits
+      {"id":"20019", "name":"Elia's Lance", "traits": ["sand snake"]},
+      {"id":"20022", "name":"First Ranger", "unique": true},
+      {"id":"20023", "name":"Lord Steward", "unique": true},
+      {"id":"21018", "name":"Grey Wind", "unique": true, "factions": ["stark"]}, // AND
+      {"id":"21028", "name":"Magnar of Thenn", "unique": true, "traits": ["wildling"]}, // AND
+      {"id":"22009", "name":"Lady Whiskers", "unique": true, "cost": [3, 2, 1, 0]}, // AND cost lower
+      {"id":"22015", "name":"First Builder", "unique": true},
+      {"id":"22027", "name":"The Horn of Winter", "unique": true},
+      {"id":"23002", "name":"Prince of the Narrow Sea", "unique": true, "factions": ["baratheon"]}, // AND
+      {"id":"23006", "name":"The Warden of the West", "factions": ["lannister"], "traits": ["lord"]}, // AND
+      {"id":"23035", "name":"Lord Protector of the Vale", "traits": ["lord"]},
+      {"id":"24027", "name":"Vanguard Leader", "unique": true},
+      {"id":"25026", "name":"Boots", "unique": true, "cost": 3}, // AND cost lower
+      {"id":"25042", "name":"The Laughing Storm", "unique": true, "location": true, "faction": "baratheon"}, // AND
+      {"id":"25050", "name":"Legacy of the Watch", "unique": true, "location": true, "faction": "the night's watch"}, // AND
+      {"id":"25052", "name":"Ice", "unique": true, "factions": ["stark"]}, // AND
+      {"id":"25056", "name":"The Warden of the South", "factions": ["tyrell"], "traits": ["lord"]}, // AND
+      {"id":"25062", "name":"Martial Law", "limited": false, "location": true}, // AND
+      {"id":"25068", "name":"Nymeria of Ny Sar", "unique": true, "location": true, "faction": "martell"}, // AND
+      {"id":"25074", "name":"Aegon the Conqueror", "unique": true, "location": true, "faction": "targaryen"}, // AND
+      {"id":"25084", "name":"Harren the Black", "unique": true, "location": true, "faction": "greyjoy"}, // AND
+      {"id":"25086", "name":"Lann the Clever", "unique": true, "location": true, "faction": "lannister"}, // AND
+      {"id":"25112", "name":"Bran the Breaker", "unique": true, "location": true, "faction": "stark"}, // AND
+      {"id":"25116", "name":"Garth Greenhand", "unique": true, "location": true, "faction": "tyrell"}, // AND
+      {"id":"26002", "name":"Roast Boar", "opponent": true},
+      {"id":"26012", "name":"The Warden of the North", "factions": ["tyrell"], "traits": ["lord"]}, // AND
+      {"id":"16016", "name":"Highgarden Destrier", "limit": 1, "cost": [3, 2, 1, 0]}, // AND
+      {"id":"26022", "name":"The King's Justice", "unique": true},
+      {"id":"26034", "name":"Queen of Meereen", "traits": ["lady"]},
+      {"id":"26052", "name":"Dubious Loyalties", "loyal": false},
+      {"id":"26058", "name":"The Warden of the East", "traits": ["house arryn"]},
+      {"id":"26064", "name":"Reaver's Greataxe", "unique": false, "factions": ["greyjoy"]}, // AND
+      {"id":"26086", "name":"Slander and Lies", "opponent": true},
+      {"id":"26088", "name":"The Viper's Spear", "traits": ["sand snake"], "title": "The Red Viper"}, // OR
+      {"id":"26094", "name":"Poisoned Locusts", "opponent": true},
     ])
 
     // ── Utilities ────────────────────────────────────────────────────────────
