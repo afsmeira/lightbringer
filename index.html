@@ -1044,7 +1044,7 @@
     // }
     const attachmentWithRestrictions = new Set([
       {"id":"01032", "name":"Seal of the Hand", "traits": ["lord", "lady"], "predicate": "traits"},
-      {"id":"01032", "name":"Bodyguard", "traits": ["lord", "lady"], "predicate": "traits"},
+      {"id":"01033", "name":"Bodyguard", "traits": ["lord", "lady"], "predicate": "traits"},
       {"id":"01058", "name":"Lightbringer", "factions": ["baratheon"], "predicate": "factions"},
       {"id":"01077", "name":"Throwing Axe", "traits": ["ironborn"], "predicate": "traits"},
       {"id":"01135", "name":"Longclaw", "factions": ["the night's watch"], "predicate": "factions"},
@@ -1138,7 +1138,7 @@
       {"id":"17126", "name":"Ward", "unique": true, "cost": [4, 3, 2, 1, 0], "predicate": "unique&&cost"}, // AND cost lower
       {"id":"17139", "name":"Unexpected Guile", "shadow": true, "predicate": "shadow"},
       {"id":"20013", "name":"Mountain's Man", "factions": ["lannister"], "predicate": "factions"},
-      {"id":"20018", "name":"Sword of the Morning", "unique": true, "faction": "martell", "traits": ["house dayne"], "predicate": "(unique&&faction)||traits"}, // AND or traits
+      {"id":"20018", "name":"Sword of the Morning", "unique": true, "factions": ["martell"], "traits": ["house dayne"], "predicate": "unique&&faction||traits"}, // AND or traits
       {"id":"20019", "name":"Elia's Lance", "traits": ["sand snake"], "predicate": "traits"},
       {"id":"20022", "name":"First Ranger", "unique": true, "predicate": "unique"},
       {"id":"20023", "name":"Lord Steward", "unique": true, "predicate": "unique"},
@@ -1153,7 +1153,7 @@
       {"id":"24027", "name":"Vanguard Leader", "unique": true, "predicate": "unique"},
       {"id":"25026", "name":"Boots", "unique": true, "cost": [3, 2, 1, 0], "predicate": "unique&&cost"}, // AND cost lower
       {"id":"25042", "name":"The Laughing Storm", "unique": true, "location": true, "factions": ["baratheon"], "predicate": "unique&&location&&factions"}, // AND
-      {"id":"25050", "name":"Legacy of the Watch", "unique": true, "location": true, "factions": ["the night's watch"]}, // AND
+      {"id":"25050", "name":"Legacy of the Watch", "unique": true, "location": true, "factions": ["the night's watch"], "predicate": "unique&&location&&factions"}, // AND
       {"id":"25052", "name":"Ice", "unique": true, "factions": ["stark"], "predicate": "unique&&factions"}, // AND
       {"id":"25056", "name":"The Warden of the South", "factions": ["tyrell"], "traits": ["lord"], "predicate": "factions&&traits"}, // AND
       {"id":"25062", "name":"Martial Law", "limited": false, "location": true, "predicate": "limited&&location"}, // AND
@@ -1169,7 +1169,7 @@
       {"id":"26022", "name":"The King's Justice", "unique": true, "predicate": "unique"},
       {"id":"26034", "name":"Queen of Meereen", "traits": ["lady"], "predicate": "traits"},
       {"id":"26052", "name":"Dubious Loyalties", "loyal": false, "predicate": "loyal"},
-      {"id":"26058", "name":"The Warden of the East", "traits": ["house arryn"]},
+      {"id":"26058", "name":"The Warden of the East", "traits": ["house arryn"], "predicate": "traits"},
       {"id":"26064", "name":"Reaver's Greataxe", "unique": false, "factions": ["greyjoy"], "predicate": "unique&&factions"}, // AND
       {"id":"26086", "name":"Slander and Lies", "opponent": true, "predicate": "opponent"},
       {"id":"26088", "name":"The Viper's Spear", "traits": ["sand snake"], "title": "The Red Viper", "predicate": "traits||title"}, // OR
@@ -1365,6 +1365,87 @@
       [...attachmentWithRestrictions].filter(r => r.location === true).map(r => r.id)
     );
 
+    // Map from card code to its restriction object (last entry wins on duplicate codes).
+    const restrictionsByCode = new Map(
+      [...attachmentWithRestrictions].map(r => [r.id, r])
+    );
+
+    // Returns true if `attachment` has at least one valid target among `candidates`.
+    // candidates: non-shadow characters (or locations) from the current combo.
+    function attachmentHasValidTarget(attachment, candidates) {
+      const restriction = restrictionsByCode.get(attachment.code);
+      if (!restriction || !restriction.predicate) return candidates.length > 0;
+
+      const parts = restriction.predicate.split(/(&&|\|\|)/);
+
+      // Parse "Lord. Lady. Spy." → Set(["lord", "lady", "spy"])
+      function cardTraits(card) {
+        if (!card.traits) return new Set();
+        return new Set(card.traits.split('.').map(t => t.trim().toLowerCase()).filter(Boolean));
+      }
+
+      // ThronesDB faction codes: thenightswatch → "the night's watch"; others pass through.
+      function normFaction(code) {
+        return code === 'thenightswatch' ? "the night's watch" : (code || '');
+      }
+
+      function evalField(field, target) {
+        switch (field.trim()) {
+          case 'traits':
+            if (!restriction.traits) return true;
+            { const t = cardTraits(target);
+              return restriction.traits.some(rt => t.has(rt.toLowerCase())); }
+          case 'excluded_traits':
+            if (!restriction.excluded_traits) return true;
+            { const t = cardTraits(target);
+              return !restriction.excluded_traits.some(rt => t.has(rt.toLowerCase())); }
+          case 'factions':
+          case 'faction':   // 'faction' (singular) in some predicates — same data field
+            if (!restriction.factions) return true;
+            return restriction.factions.includes(normFaction(target.faction_code));
+          case 'unique':
+            if (restriction.unique === undefined) return true;
+            return !!target.is_unique === restriction.unique;
+          case 'limited':
+            if (restriction.limited === undefined) return true;
+            return !!target.is_limited === restriction.limited;
+          case 'location':
+            if (restriction.location === undefined) return true;
+            return (target.type_name === 'Location') === restriction.location;
+          case 'loyal':
+            if (restriction.loyal === undefined) return true;
+            // restriction.loyal is the required value of target.loyal
+            return !!target.loyal === restriction.loyal;
+          case 'shadow':
+            if (restriction.shadow === undefined) return true;
+            return !!target.shadow === restriction.shadow;
+          case 'title':
+            if (!restriction.title) return true;
+            return (target.name || '').toLowerCase() === restriction.title.toLowerCase();
+          case 'cost':
+            if (!restriction.cost) return true;
+            { const c = parseInt(target.cost);
+              return !isNaN(c) && restriction.cost.includes(c); }
+          case 'limit':
+            return true;  // attaching once in setup always satisfies any limit ≥ 1
+          case 'opponent':
+            return false; // can never target opponent's cards during our own setup
+          default:
+            return true;
+        }
+      }
+
+      return candidates.some(target => {
+        let result = evalField(parts[0], target);
+        for (let i = 1; i < parts.length; i += 2) {
+          const val = evalField(parts[i + 1], target);
+          if (parts[i] === '&&') result = result && val;
+          else result = result || val;
+        }
+        return result;
+      });
+    }
+
     function allValidSetups(hand) {
       // Only consider cards that can be set up.
       // Events are only eligible if they have shadow (always go into shadows).
@@ -1406,15 +1487,17 @@
           }).filter(c => c !== null);
 
           // Non-shadow attachments need a valid target in the setup.
-          // Location-attachments need at least one non-shadow location;
-          // all others need at least one non-shadow character.
-          // An attachment without a valid target is excluded from the combo
-          // (it simply can't be set up), not the whole combo rejected.
-          const hasChar = cardsWithDetails.some(c => c.type_name === 'Character' && !c.inShadow);
-          const hasLoc  = cardsWithDetails.some(c => c.type_name === 'Location'  && !c.inShadow);
+          // Location-attachments need a non-shadow location; others need a non-shadow character.
+          // Additionally, if the attachment is in attachmentWithRestrictions, the target must
+          // satisfy the predicate. An attachment without a valid target is excluded from the
+          // combo (it simply can't be set up), not the whole combo rejected.
           cardsWithDetails = cardsWithDetails.filter(c => {
             if (c.type_name !== 'Attachment' || c.inShadow) return true;
-            return locationAttachmentIds.has(c.code) ? hasLoc : hasChar;
+            const isLocAttach = locationAttachmentIds.has(c.code);
+            const candidates = cardsWithDetails.filter(t =>
+              !t.inShadow && (isLocAttach ? t.type_name === 'Location' : t.type_name === 'Character')
+            );
+            return attachmentHasValidTarget(c, candidates);
           });
           if (cardsWithDetails.length === 0) continue;
           total = cardsWithDetails.reduce((sum, c) => sum + c.effectiveCost, 0);
