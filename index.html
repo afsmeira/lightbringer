@@ -409,7 +409,8 @@
       pointer-events: none;
     }
 
-    .deck-table tr.deck-table-disabled input[type="checkbox"] {
+    .deck-table tr.deck-table-disabled input[type="checkbox"],
+    .deck-table input[type="checkbox"]:disabled {
       border-color: #2a1a08;
       opacity: 0.35;
       cursor: not-allowed;
@@ -1001,22 +1002,13 @@
       {"id":"01035", "name":"Milk of the Poppy"},
       {"id":"02006", "name":"Pleasure Barge"},
       {"id":"02034", "name":"Crown of Gold"},
-      {"id":"02052", "name":"Fishing Net"}, // Should be caught by attachment restrictions during setup simulation
-      {"id":"02055", "name":"Attainted"}, // Should be caught by attachment restrictions during setup simulation
-      {"id":"02071", "name":"Paid Off"}, // Should be caught by attachment restrictions during setup simulation
-      {"id":"02077", "name":"Condemned"}, // Should be caught by attachment restrictions during setup simulation
-      {"id":"02088", "name":"Stinking Drunk"}, // Should be caught by attachment restrictions during setup simulation
       {"id":"02102", "name":"Ward"},
-      {"id":"02116", "name":"Imprisioned"}, // Should be caught by attachment restrictions during setup simulation
       {"id":"03021", "name":"Frozen Solid"},
-      {"id":"03025", "name":"Motley"}, // Should be caught by attachment restrictions during setup simulation
       {"id":"04026", "name":"Craven"},
-      {"id":"04048", "name":"Visited by Shadows"}, // Should be caught by attachment restrictions during setup simulation
       {"id":"04098", "name":"The Frostfangs"},
       {"id":"06022", "name":"Marriage Pact"},
       {"id":"06116", "name":"Locked Away"},
       {"id":"07032", "name":"Lingering Venom"},
-      {"id":"08009", "name":"Taritor to the Crown"}, // Should be caught by attachment restrictions during setup simulation
       {"id":"08078", "name":"Seized by the Guard"},
       {"id":"09043", "name":"Strangler"},
       {"id":"10021", "name":"Beguiled"},
@@ -1031,8 +1023,6 @@
       {"id":"25030", "name":"Insubordination"},
       {"id":"25059", "name":"Greyscale"},
       {"id":"25062", "name":"Martial Law"},
-      {"id":"26002", "name":"Roast Boar"}, // Should be caught by attachment restrictions during setup simulation
-      {"id":"26086", "name":"Slander and Lies"}, // Should be caught by attachment restrictions during setup simulation
       {"id":"26094", "name":"Poisoned Locusts"}, // Should be caught by attachment restrictions during setup simulation
       {"id":"26113", "name":"War Elephants"},
     ])
@@ -1629,8 +1619,8 @@
           if (best.cards.some(c => c.is_economy)) economyCount++;
           if (best.cards.some(c => c.is_limited)) limitedCount++;
           simLog.push({
-            initialHand:  initialHand.map(c => ({ name: c.name, type: c.type_name, isShadowEvent: c.type_name === 'Event' && !!c.shadow })),
-            mulliganHand: mulliganHand ? mulliganHand.map(c => ({ name: c.name, type: c.type_name, isShadowEvent: c.type_name === 'Event' && !!c.shadow })) : null,
+            initialHand:  initialHand.map(c => ({ name: c.name, type: c.type_name, isShadowEvent: c.type_name === 'Event' && !!c.shadow, isRestricted: cardInSet(c, restrictedSet) })),
+            mulliganHand: mulliganHand ? mulliganHand.map(c => ({ name: c.name, type: c.type_name, isShadowEvent: c.type_name === 'Event' && !!c.shadow, isRestricted: cardInSet(c, restrictedSet) })) : null,
             setup:    best ? best.cards.map(c => ({
               name:        c.name,
               cost:        c.effectiveCost,
@@ -1717,7 +1707,7 @@
       const sep = `<span class="sim-sep">·</span>`;
 
       const renderCards = cards => cards.map(c =>
-        SETUP_TYPES.has(c.type) || c.isShadowEvent
+        !c.isRestricted && (SETUP_TYPES.has(c.type) || c.isShadowEvent)
           ? c.name
           : `<span class="sim-card-dim">${c.name}</span>`
       ).join(sep);
@@ -2028,14 +2018,18 @@
         const knownEconomyIds    = new Set([...knowEconomyCards].map(e => e.id));
         const knownAvoidableIds  = new Set([...knownAvoidableCards].map(e => e.id));
         const knownRestrictedIds = new Set([...knownRestrictedCards].map(e => e.id));
+        const opponentRestrictedIds = new Set(
+          [...attachmentWithRestrictions].filter(e => e.opponent === true).map(e => e.id)
+        );
         let lastType = null;
         const trs = rows.map(({ card, qty }) => {
           const name = qty > 1 ? `${card.label || card.name} ×${qty}` : (card.label || card.name);
           const isEvent = card.type_name === 'Event';
-          const isDisabled    = isEvent && !card.shadow;
+          const isOpponentRestricted  = opponentRestrictedIds.has(card.code);
+          const isDisabled            = (isEvent && !card.shadow) || isOpponentRestricted;
           const isEconomy     = card.is_limited || card.income_modifier > 0 || knownEconomyIds.has(card.code);
           const isAvoidable   = knownAvoidableIds.has(card.code) || (card.bestow && card.type_name === 'Character');
-          const isRestricted  = knownRestrictedIds.has(card.code) || (card.bestow && card.type_name !== 'Character');
+          const isRestricted  = knownRestrictedIds.has(card.code) || (card.bestow && card.type_name !== 'Character') || isOpponentRestricted;
           const cb = (checked, disabled) =>
             `<input type="checkbox"${checked ? ' checked' : ''}${disabled ? ' disabled' : ''}>`;
           const separator = card.type_name !== lastType
