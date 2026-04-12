@@ -348,6 +348,9 @@
     .icon-attachment::before   { content: "\e60d"; }
     .icon-location::before     { content: "\e60e"; }
     .icon-event::before        { content: "\e610"; }
+    .icon-military::before     { content: "\e605"; }
+    .icon-intrigue::before     { content: "\e602"; }
+    .icon-power::before        { content: "\e607"; }
     .icon-stark::before        { content: "\e608"; }
     .icon-lannister::before    { content: "\e603"; }
     .icon-targaryen::before    { content: "\e609"; }
@@ -743,6 +746,18 @@
     .sim-card-economy  { color: #5aaa60; }
     .sim-card-avoidable{ color: #c05030; }
     .sim-card-shadow   { color: #6090c0; }
+
+    /* Deck statistics charts */
+    .deck-chart-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 0.75rem;
+    }
+    .deck-chart-cell {
+      flex: 1 1 0;
+      min-width: 260px;
+    }
   </style>
 </head>
 <body>
@@ -835,6 +850,13 @@
       <div class="details-body">
         <p style="font-size:0.82rem; color:#6a5030; margin:0.5rem 0 0 0;">All possible setups for a given starting hand are ranked according to this criteria, which are applied top to bottom — the first differentiating criterion wins. All criteria inlcude cards setup into shadows. Drag to re-order.</p>
         <ol id="sort-criteria-list"></ol>
+      </div>
+    </details>
+
+    <details id="deck-stats-details" style="margin-top:1.25rem; display:none;">
+      <summary style="cursor:pointer; color:#c9952a; font-size:1.1rem; font-family:'Georgia',serif; letter-spacing:0.03em; user-select:none;">Deck Statistics</summary>
+      <div class="details-body">
+        <div id="deck-charts" style="margin-top:0.5rem;"></div>
       </div>
     </details>
 
@@ -2114,6 +2136,388 @@
       return s;
     }
 
+    // ── Deck statistics charts ─────────────────────────────────────────────────
+
+    // Read the actual unicode character from a CSS ::before content value.
+    // This ensures SVG text labels stay in sync when CSS icon codes are changed.
+    function getCSSIconChar(className) {
+      const el = document.createElement('span');
+      el.className = className;
+      el.style.cssText = 'position:absolute;visibility:hidden';
+      document.body.appendChild(el);
+      const raw = window.getComputedStyle(el, '::before').content;
+      document.body.removeChild(el);
+      // Browsers return the character wrapped in quotes, e.g. '"⚔"' or '"\e60b"'
+      return raw.replace(/^['"]|['"]$/g, '');
+    }
+
+    let _deckLineId = 0;
+
+    function deckLineToggle(chartId, idx) {
+      const svg = document.getElementById(chartId);
+      if (!svg) return;
+      const next = svg._deckFocus === idx ? null : idx;
+      svg._deckFocus = next;
+      svg.querySelectorAll('[data-si]').forEach(g => {
+        g.style.opacity = next === null || +g.dataset.si === next ? '1' : '0.1';
+      });
+      svg.querySelectorAll('[data-li]').forEach(g => {
+        g.style.opacity = next === null || +g.dataset.li === next ? '1' : '0.3';
+      });
+    }
+
+    function renderDeckBar(values, labels, title, opts = {}) {
+      const {
+        barColors   = null,
+        barColor    = '#c9952a',
+        xFontFamily = 'sans-serif',
+        xFontSize   = 11,
+        xFills      = null,
+        tooltips    = null,
+        yLabel      = '# Cards',
+      } = opts;
+
+      if (!values.length) return `<p style="color:#6a5030;font-size:0.85rem;text-align:center;padding:1rem 0;">No data</p>`;
+
+      const maxVal = Math.max(...values, 1);
+      const rawStep = maxVal / 4;
+      const exp = Math.floor(Math.log10(rawStep || 1));
+      const mag = Math.pow(10, exp);
+      const niceStep = Math.ceil((rawStep || 1) / mag) * mag;
+      const yMax = niceStep * 4;
+      const ticks = [0, 1, 2, 3, 4].map(i => i * niceStep);
+
+      const mL = 42, mR = 12, mT = 32, mB = 36;
+      const W = 560, H = 192;
+      const iW = W - mL - mR;
+      const iH = H - mT - mB;
+      const n = values.length;
+      const barW = iW / n;
+      const gap = Math.max(barW * 0.15, 2);
+      const xPos = i => mL + i * barW;
+      const yPos = v => mT + iH - (v / yMax) * iH;
+      const barHt = v => Math.max(0, (v / yMax) * iH);
+
+      let s = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;overflow:visible">`;
+
+      // Title
+      s += `<text x="${(W / 2).toFixed(1)}" y="${mT - 14}"
+        text-anchor="middle" font-family="sans-serif" font-size="12" fill="#a89060"
+        letter-spacing="0.04em">${title}</text>`;
+
+      // Grid lines
+      for (const t of ticks) {
+        const cy = yPos(t).toFixed(1);
+        s += `<line x1="${mL}" y1="${cy}" x2="${W - mR}" y2="${cy}" stroke="#2a1c08" stroke-width="1"/>`;
+      }
+
+      // Bars
+      for (let i = 0; i < n; i++) {
+        const v = values[i] || 0;
+        const color = barColors ? (barColors[i] || barColor) : barColor;
+        const bx = xPos(i) + gap;
+        const bw = Math.max(barW - gap * 2, 1);
+        const by = yPos(v);
+        const bh = barHt(v);
+        const tip = tooltips ? tooltips[i] : '';
+        s += `<rect x="${bx.toFixed(1)}" y="${by.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}"
+          fill="${v > 0 ? color : '#1e140a'}" rx="2">${tip ? `<title>${tip}</title>` : ''}</rect>`;
+        if (v > 0) {
+          s += `<text x="${(bx + bw / 2).toFixed(1)}" y="${(by - 4).toFixed(1)}"
+            text-anchor="middle" font-family="sans-serif" font-size="10" fill="#a89060"
+            pointer-events="none">${v}</text>`;
+        }
+      }
+
+      // Axes
+      s += `<line x1="${mL}" y1="${mT}" x2="${mL}" y2="${mT + iH}" stroke="#4a3510" stroke-width="1"/>`;
+      s += `<line x1="${mL}" y1="${mT + iH}" x2="${W - mR}" y2="${mT + iH}" stroke="#4a3510" stroke-width="1"/>`;
+
+      // X-axis labels (skip zero-value bars to reduce clutter when many buckets)
+      const showAllLabels = n <= 12;
+      for (let i = 0; i < n; i++) {
+        if (!showAllLabels && !values[i]) continue;
+        const cx = (xPos(i) + barW / 2).toFixed(1);
+        const fill = xFills ? (xFills[i] || '#6a5030') : '#6a5030';
+        s += `<text x="${cx}" y="${(mT + iH + 18).toFixed(1)}"
+          text-anchor="middle" font-family="${xFontFamily}" font-size="${xFontSize}" fill="${fill}">${labels[i]}</text>`;
+      }
+
+      // Y-axis ticks and labels
+      for (const t of ticks) {
+        const cy = (yPos(t) + 4).toFixed(1);
+        s += `<text x="${mL - 6}" y="${cy}" text-anchor="end" font-family="sans-serif" font-size="10" fill="#6a5030">${t}</text>`;
+      }
+
+      // Y-axis title
+      if (yLabel) {
+        s += `<text x="${mL - 30}" y="${(mT + iH / 2).toFixed(1)}"
+          text-anchor="middle" font-family="sans-serif" font-size="10" fill="#6a5030"
+          transform="rotate(-90,${mL - 30},${(mT + iH / 2).toFixed(1)})">${yLabel}</text>`;
+      }
+
+      s += `</svg>`;
+      return s;
+    }
+
+    function renderDeckLines(series, title, opts = {}) {
+      // series: [{ name, color, values, xOffset }]
+      // values[i] is the count at x = xOffset + i
+      const { yLabel = '# Cards' } = opts;
+      const chartId = `dl${++_deckLineId}`;
+
+      // Build the common x-axis from the union of all x-values in any series
+      const allX = new Set();
+      for (const s of series) {
+        for (let i = 0; i < s.values.length; i++) allX.add(s.xOffset + i);
+      }
+      const xVals = [...allX].sort((a, b) => a - b);
+      if (!xVals.length) return `<p style="color:#6a5030;font-size:0.85rem;text-align:center;padding:1rem 0;">No data</p>`;
+
+      // Map each series onto the common x-axis (0 where series has no value)
+      const resolved = series
+        .filter(s => s.values.length)
+        .map(s => ({
+          name: s.name,
+          color: s.color,
+          points: xVals.map(x => {
+            const i = x - s.xOffset;
+            return (i >= 0 && i < s.values.length) ? (s.values[i] || 0) : 0;
+          }),
+        }));
+      if (!resolved.length) return `<p style="color:#6a5030;font-size:0.85rem;text-align:center;padding:1rem 0;">No data</p>`;
+
+      // Y-axis scale
+      const yRaw = Math.max(...resolved.flatMap(s => s.points), 1);
+      const rawStep = yRaw / 4;
+      const exp = Math.floor(Math.log10(rawStep || 1));
+      const mag = Math.pow(10, exp);
+      const niceStep = Math.ceil((rawStep || 1) / mag) * mag;
+      const yMax = niceStep * 4;
+      const ticks = [0, 1, 2, 3, 4].map(i => i * niceStep);
+
+      const mL = 46, mR = 12, mT = 34, mB = 54;
+      const W = 700, H = 240;
+      const iW = W - mL - mR;
+      const iH = H - mT - mB;
+      const n = xVals.length;
+      const xPos = i => n <= 1 ? mL + iW / 2 : mL + (i / (n - 1)) * iW;
+      const yPos = v => mT + iH - (v / yMax) * iH;
+
+      let s = `<svg id="${chartId}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;overflow:visible">`;
+
+      // Title
+      s += `<text x="${(W / 2).toFixed(1)}" y="${mT - 16}"
+        text-anchor="middle" font-family="sans-serif" font-size="12" fill="#a89060"
+        letter-spacing="0.04em">${title}</text>`;
+
+      // Grid lines
+      for (const t of ticks) {
+        const cy = yPos(t).toFixed(1);
+        s += `<line x1="${mL}" y1="${cy}" x2="${W - mR}" y2="${cy}" stroke="#2a1c08" stroke-width="1"/>`;
+      }
+
+      // Series groups — each wrapped in a <g> for opacity toggling
+      for (let si = 0; si < resolved.length; si++) {
+        const sr = resolved[si];
+        s += `<g data-si="${si}" style="transition:opacity 0.15s">`;
+        const pts = sr.points.map((v, i) => `${xPos(i).toFixed(1)},${yPos(v).toFixed(1)}`).join(' ');
+        s += `<polyline points="${pts}" fill="none" stroke="${sr.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+        for (let i = 0; i < sr.points.length; i++) {
+          const v = sr.points[i];
+          if (v <= 0) continue;
+          s += `<circle cx="${xPos(i).toFixed(1)}" cy="${yPos(v).toFixed(1)}" r="3" fill="${sr.color}"><title>${sr.name}: ${v}</title></circle>`;
+        }
+        s += `</g>`;
+      }
+
+      // Axes
+      s += `<line x1="${mL}" y1="${mT}" x2="${mL}" y2="${mT + iH}" stroke="#4a3510" stroke-width="1"/>`;
+      s += `<line x1="${mL}" y1="${mT + iH}" x2="${W - mR}" y2="${mT + iH}" stroke="#4a3510" stroke-width="1"/>`;
+
+      // X-axis labels (thin when many ticks)
+      const labelEvery = n > 20 ? 5 : n > 12 ? 2 : 1;
+      for (let i = 0; i < n; i++) {
+        if (i % labelEvery !== 0 && i !== n - 1) continue;
+        s += `<text x="${xPos(i).toFixed(1)}" y="${(mT + iH + 16).toFixed(1)}"
+          text-anchor="middle" font-family="sans-serif" font-size="11" fill="#6a5030">${xVals[i]}</text>`;
+      }
+
+      // Y-axis ticks and labels
+      for (const t of ticks) {
+        const cy = (yPos(t) + 4).toFixed(1);
+        s += `<text x="${mL - 6}" y="${cy}" text-anchor="end" font-family="sans-serif" font-size="10" fill="#6a5030">${t}</text>`;
+      }
+
+      // Y-axis title
+      if (yLabel) {
+        s += `<text x="${mL - 34}" y="${(mT + iH / 2).toFixed(1)}"
+          text-anchor="middle" font-family="sans-serif" font-size="10" fill="#6a5030"
+          transform="rotate(-90,${mL - 34},${(mT + iH / 2).toFixed(1)})">${yLabel}</text>`;
+      }
+
+      // Interactive legend — clicking a key focuses that series
+      const legendY = mT + iH + 36;
+      const itemW = Math.min(110, Math.floor(iW / resolved.length));
+      const totalW = resolved.length * itemW;
+      const legendX0 = mL + (iW - totalW) / 2;
+      for (let i = 0; i < resolved.length; i++) {
+        const lx = legendX0 + i * itemW;
+        s += `<g data-li="${i}" style="cursor:pointer;transition:opacity 0.15s" onclick="deckLineToggle('${chartId}',${i})">`;
+        s += `<rect x="${lx.toFixed(1)}" y="${(legendY - 8).toFixed(1)}" width="${(itemW - 2).toFixed(1)}" height="16" fill="transparent"/>`;
+        s += `<line x1="${lx.toFixed(1)}" y1="${legendY}" x2="${(lx + 20).toFixed(1)}" y2="${legendY}" stroke="${resolved[i].color}" stroke-width="2"/>`;
+        s += `<circle cx="${(lx + 10).toFixed(1)}" cy="${legendY}" r="3" fill="${resolved[i].color}"/>`;
+        s += `<text x="${(lx + 26).toFixed(1)}" y="${(legendY + 4).toFixed(1)}"
+          font-family="sans-serif" font-size="11" fill="#a89060">${resolved[i].name}</text>`;
+        s += `</g>`;
+      }
+
+      s += `</svg>`;
+      return s;
+    }
+
+    function renderDeckCharts(slots, cardMap) {
+      const FACTION_ICONS = {
+        stark:          '\ue608',
+        lannister:      '\ue603',
+        targaryen:      '\ue609',
+        baratheon:      '\ue600',
+        greyjoy:        '\ue601',
+        tyrell:         '\ue60a',
+        thenightswatch: '\ue606',
+        martell:        '\ue604',
+        neutral:        '\ue612',
+      };
+
+      const allEntries = Object.entries(slots)
+        .map(([code, qty]) => ({ card: cardMap[code], qty }))
+        .filter(({ card }) => card);
+
+      const deckCards = allEntries.filter(({ card }) => !['Plot', 'Agenda'].includes(card.type_name));
+      const plots     = allEntries.filter(({ card }) => card.type_name === 'Plot');
+      const chars     = deckCards.filter(({ card }) => card.type_name === 'Character');
+      const locs      = deckCards.filter(({ card }) => card.type_name === 'Location');
+      const atts      = deckCards.filter(({ card }) => card.type_name === 'Attachment');
+      const evts      = deckCards.filter(({ card }) => card.type_name === 'Event');
+
+      // ── Faction distribution ─────────────────────────────────────────────
+      const factionMap = {};
+      for (const { card, qty } of deckCards) {
+        const f = card.faction_code || 'neutral';
+        factionMap[f] = (factionMap[f] || 0) + qty;
+      }
+      const factionOrder = ['stark','lannister','targaryen','baratheon','greyjoy','tyrell','thenightswatch','martell','neutral'];
+      const factionPresent = factionOrder.filter(f => factionMap[f]);
+      const factionChart = renderDeckBar(
+        factionPresent.map(f => factionMap[f]),
+        factionPresent.map(f => FACTION_ICONS[f] || f),
+        'Cards by Faction',
+        {
+          barColors:   factionPresent.map(f => FACTION_COLORS[f] || '#c9952a'),
+          xFontFamily: 'thronesdb',
+          xFontSize:   20,
+          xFills:      factionPresent.map(f => FACTION_COLORS[f] || '#6a5030'),
+          tooltips:    factionPresent.map(f => `${FACTION_NAMES[f] || f}: ${factionMap[f]}`),
+        }
+      );
+
+      // ── Character icon distribution ──────────────────────────────────────
+      const iconCounts = [0, 0, 0];
+      for (const { card, qty } of chars) {
+        if (card.is_military) iconCounts[0] += qty;
+        if (card.is_intrigue) iconCounts[1] += qty;
+        if (card.is_power)    iconCounts[2] += qty;
+      }
+      const iconChart = renderDeckBar(
+        iconCounts,
+        [getCSSIconChar('icon-military'), getCSSIconChar('icon-intrigue'), getCSSIconChar('icon-power')],
+        'Character Icon Distribution',
+        {
+          yLabel:      '# Characters',
+          barColors:   ['#d04040', '#40a848', '#4488c8'],
+          xFontFamily: 'thronesdb',
+          xFontSize:   20,
+          xFills:      ['#d04040', '#40a848', '#4488c8'],
+          tooltips:    [`Military: ${iconCounts[0]}`, `Intrigue: ${iconCounts[1]}`, `Power: ${iconCounts[2]}`],
+        }
+      );
+
+      // ── Cost/stat distribution helpers ───────────────────────────────────
+      function costDist(entries) {
+        const costs = entries.flatMap(({ card }) => {
+          const c = parseInt(card.cost);
+          return isNaN(c) || c < 0 ? [] : [c];
+        });
+        if (!costs.length) return { values: [], labels: [], xOffset: 0 };
+        const max = Math.max(...costs);
+        const dist = new Array(max + 1).fill(0);
+        for (const { card, qty } of entries) {
+          const c = parseInt(card.cost);
+          if (!isNaN(c) && c >= 0) dist[c] += qty;
+        }
+        return { values: dist, labels: dist.map((_, i) => String(i)), xOffset: 0 };
+      }
+
+      function statDist(entries, getter) {
+        const vals = entries.flatMap(({ card }) => {
+          const v = getter(card);
+          return isNaN(v) || v < 0 ? [] : [v];
+        });
+        if (!vals.length) return { values: [], labels: [], xOffset: 0 };
+        const min = Math.min(...vals);
+        const max = Math.max(...vals);
+        const dist = new Array(max - min + 1).fill(0);
+        for (const { card, qty } of entries) {
+          const v = getter(card);
+          if (!isNaN(v) && v >= 0) dist[v - min] += qty;
+        }
+        return { values: dist, labels: dist.map((_, i) => String(i + min)), xOffset: min };
+      }
+
+      const charCostData  = costDist(chars);
+      const charStrData   = statDist(chars, c => parseInt(c.strength));
+      const locCostData   = costDist(locs);
+      const attCostData   = costDist(atts);
+      const evtCostData   = costDist(evts);
+      const allCostData   = costDist(deckCards);
+      const plotIncData   = statDist(plots, c => parseInt(c.income));
+      const plotInitData  = statDist(plots, c => parseInt(c.initiative));
+      const plotClaimData = statDist(plots, c => parseInt(c.claim));
+      const plotResvData  = statDist(plots, c => parseInt(c.reserve));
+
+      // ── Combined cost curve (multi-line) ─────────────────────────────────
+      const costCurveChart = renderDeckLines([
+        { name: 'Character',       color: '#c9952a', values: charCostData.values, xOffset: charCostData.xOffset },
+        { name: 'Location',        color: '#5aaa60', values: locCostData.values,  xOffset: locCostData.xOffset  },
+        { name: 'Attachment',      color: '#a070d8', values: attCostData.values,  xOffset: attCostData.xOffset  },
+        { name: 'Event',           color: '#6090c0', values: evtCostData.values,  xOffset: evtCostData.xOffset  },
+        { name: 'All Cards',       color: '#e8d5a3', values: allCostData.values,  xOffset: allCostData.xOffset  },
+        { name: 'Char Strength',   color: '#e07040', values: charStrData.values,  xOffset: charStrData.xOffset  },
+      ], 'Cost & Strength Curve');
+
+      // ── Combined plot statistics (multi-line) ────────────────────────────
+      const plotStatsChart = renderDeckLines([
+        { name: 'Income',     color: '#c9952a', values: plotIncData.values,   xOffset: plotIncData.xOffset   },
+        { name: 'Initiative', color: '#5aaa60', values: plotInitData.values,  xOffset: plotInitData.xOffset  },
+        { name: 'Claim',      color: '#c05030', values: plotClaimData.values, xOffset: plotClaimData.xOffset },
+        { name: 'Reserve',    color: '#6090c0', values: plotResvData.values,  xOffset: plotResvData.xOffset  },
+      ], 'Plot Statistics', { yLabel: '# Plots' });
+
+      const bar = (data, title, opts = {}) =>
+        data.values.length
+          ? renderDeckBar(data.values, data.labels, title, opts)
+          : `<p style="color:#6a5030;font-size:0.85rem;text-align:center;padding:1rem 0;">No data</p>`;
+
+      const row = (...cells) => `<div class="deck-chart-grid">${cells.map(c => `<div class="deck-chart-cell">${c}</div>`).join('')}</div>`;
+
+      return [
+        row(factionChart),
+        row(iconChart),
+        row(costCurveChart),
+        row(plotStatsChart),
+      ].join('');
+    }
+
 
     let deckLoadLocked = false;
     document.getElementById('deck-url').addEventListener('keydown', e => {
@@ -2170,7 +2574,7 @@
       const details  = document.getElementById('deck-table-details');
       const btn = document.getElementById('analyze-btn');
       const btnWrapper = document.getElementById('analyze-btn-wrapper');
-      if (!deckId) { section.innerHTML = ''; details.style.display = 'none'; document.getElementById('config-details').style.display = 'none'; document.getElementById('sort-details').style.display = 'none'; btnWrapper.style.display = 'none'; document.getElementById('deck-title').style.display = 'none'; setStatus(''); return; }
+      if (!deckId) { section.innerHTML = ''; details.style.display = 'none'; document.getElementById('config-details').style.display = 'none'; document.getElementById('sort-details').style.display = 'none'; document.getElementById('deck-stats-details').style.display = 'none'; btnWrapper.style.display = 'none'; document.getElementById('deck-title').style.display = 'none'; setStatus(''); return; }
 
       setStatus('Loading deck data…', 'loading');
       try {
@@ -2192,7 +2596,7 @@
             return ta !== tb ? ta - tb : a.card.name.localeCompare(b.card.name);
           });
 
-        if (rows.length === 0) { section.innerHTML = ''; details.style.display = 'none'; document.getElementById('config-details').style.display = 'none'; document.getElementById('sort-details').style.display = 'none'; btnWrapper.style.display = 'none'; document.getElementById('deck-title').style.display = 'none'; return; }
+        if (rows.length === 0) { section.innerHTML = ''; details.style.display = 'none'; document.getElementById('config-details').style.display = 'none'; document.getElementById('sort-details').style.display = 'none'; document.getElementById('deck-stats-details').style.display = 'none'; btnWrapper.style.display = 'none'; document.getElementById('deck-title').style.display = 'none'; return; }
 
         const knownEconomyIds    = new Set([...knowEconomyCards].map(e => e.id));
         const knownAvoidableIds  = new Set([...knownAvoidableCards].map(e => e.id));
@@ -2282,6 +2686,8 @@
         document.getElementById('config-details').style.display = '';
         document.getElementById('sort-details').style.display = '';
         renderSortCriteria();
+        document.getElementById('deck-stats-details').style.display = '';
+        document.getElementById('deck-charts').innerHTML = renderDeckCharts(slots, cardMap);
         btnWrapper.style.display = '';
 
         // Red Door: mutual exclusion — only one 🚪 checkbox may be checked at a time.
@@ -2310,6 +2716,7 @@
         details.style.display = 'none';
         document.getElementById('config-details').style.display = 'none';
         document.getElementById('sort-details').style.display = 'none';
+        document.getElementById('deck-stats-details').style.display = 'none';
         btnWrapper.style.display = 'none';
         document.getElementById('deck-title').style.display = 'none';
       }
