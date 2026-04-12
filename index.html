@@ -1209,6 +1209,19 @@
         card.income_modifier = incomeMatch ? parseInt(incomeMatch[1], 10) : null;
         card.bestow  = typeof card.text === 'string' && /Bestow\s*\(\s*[1-9]\d*\s*\)/.test(card.text);
         card.shadow  = typeof card.text === 'string' && /Shadow\s*\(\s*\d+\s*\)/.test(card.text);
+        const noAttach = typeof card.text === 'string'
+          ? card.text.match(/No attachments(?: except ([^.]+))?\./)
+          : null;
+        if (noAttach) {
+          if (noAttach[1]) {
+            const exceptTraits = [...noAttach[1].matchAll(/\[([^\]]+)\]/g)]
+              .map(m => m[1].replace(/<[^>]+>/g, '').trim().toLowerCase())
+              .filter(Boolean);
+            card.no_attachments = exceptTraits.length > 0 ? { except: exceptTraits } : { none: true };
+          } else {
+            card.no_attachments = { none: true };
+          }
+        }
         cachedCards[card.code] = card;
       }
       updateEconomyFlags();
@@ -1365,6 +1378,21 @@
       [...attachmentWithRestrictions].filter(r => r.location === true).map(r => r.id)
     );
 
+    // Parse "Lord. Lady. Spy." → Set(["lord", "lady", "spy"])
+    function cardTraits(card) {
+      if (!card.traits) return new Set();
+      return new Set(card.traits.split('.').map(t => t.trim().toLowerCase()).filter(Boolean));
+    }
+
+    // Returns true if `character` can accept an attachment with the given trait set.
+    // Handles "No attachments." and "No attachments except [Trait]." card text.
+    function characterAcceptsAttachment(character, attachTraits) {
+      const r = character.no_attachments;
+      if (!r) return true;
+      if (r.none) return false;
+      return r.except.some(t => attachTraits.has(t));
+    }
+
     // Map from card code to its restriction object (last entry wins on duplicate codes).
     const restrictionsByCode = new Map(
       [...attachmentWithRestrictions].map(r => [r.id, r])
@@ -1377,12 +1405,6 @@
       if (!restriction || !restriction.predicate) return candidates.length > 0;
 
       const parts = restriction.predicate.split(/(&&|\|\|)/);
-
-      // Parse "Lord. Lady. Spy." → Set(["lord", "lady", "spy"])
-      function cardTraits(card) {
-        if (!card.traits) return new Set();
-        return new Set(card.traits.split('.').map(t => t.trim().toLowerCase()).filter(Boolean));
-      }
 
       // ThronesDB faction codes: thenightswatch → "the night's watch"; others pass through.
       function normFaction(code) {
@@ -1494,9 +1516,12 @@
           cardsWithDetails = cardsWithDetails.filter(c => {
             if (c.type_name !== 'Attachment' || c.inShadow) return true;
             const isLocAttach = locationAttachmentIds.has(c.code);
-            const candidates = cardsWithDetails.filter(t =>
-              !t.inShadow && (isLocAttach ? t.type_name === 'Location' : t.type_name === 'Character')
-            );
+            const attachTraits = isLocAttach ? null : cardTraits(c);
+            const candidates = cardsWithDetails.filter(t => {
+              if (t.inShadow) return false;
+              if (isLocAttach) return t.type_name === 'Location';
+              return t.type_name === 'Character' && characterAcceptsAttachment(t, attachTraits);
+            });
             return attachmentHasValidTarget(c, candidates);
           });
           if (cardsWithDetails.length === 0) continue;
