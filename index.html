@@ -380,7 +380,7 @@
     }
 
     #card-image-tooltip img {
-      display: block;
+      display: none;
       width: 200px;
     }
 
@@ -454,6 +454,7 @@
       display: flex;
       flex-direction: column;
       gap: 0.6rem;
+      margin-top: 1rem;
     }
 
     .cfg-check {
@@ -763,6 +764,160 @@
       flex: 1 1 0;
       min-width: 260px;
     }
+    /* Page-level panels */
+    #how-it-works-panel,
+    #deck-input-panel {
+      width: 100%;
+      max-width: 680px;
+    }
+    #how-it-works-panel { margin: 2rem auto 0; }
+    #deck-input-panel   { margin-top: 1.5rem; }
+
+    /* Details summary headings */
+    .panel-summary {
+      cursor: pointer;
+      color: #c9952a;
+      font-size: 1.1rem;
+      font-family: 'Georgia', serif;
+      letter-spacing: 0.03em;
+      user-select: none;
+    }
+
+    /* Section label (e.g. "Deck" input label) */
+    .panel-label {
+      display: block;
+      color: #c9952a;
+      font-size: 1.1rem;
+      font-family: 'Georgia', serif;
+      letter-spacing: 0.03em;
+      margin-bottom: 0.5rem;
+    }
+
+    /* Info paragraphs inside how-it-works */
+    .info-text {
+      font-size: 0.85rem;
+      color: #a89060;
+      line-height: 1.7;
+      margin-bottom: 0.75rem;
+    }
+    .info-text:first-of-type { margin-top: 0.75rem; }
+
+    /* Deck title widget */
+    #deck-title {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+    .deck-title-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    .deck-title-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .deck-title-faction-icon {
+      font-family: 'thronesdb';
+      font-size: 1.4rem;
+      line-height: 1;
+    }
+    .deck-title-name {
+      font-family: 'Georgia', serif;
+      font-size: 1.1rem;
+      color: #e8d5a3;
+    }
+    .deck-title-subtitle {
+      font-size: 0.82rem;
+      color: #6a5030;
+    }
+
+    /* Initially-hidden detail sections */
+    #deck-table-details { margin-top: 1rem;   display: none; }
+    #config-details,
+    #sort-details,
+    #deck-stats-details { margin-top: 1.25rem; display: none; }
+
+    /* Analyze button wrapper */
+    #analyze-btn-wrapper {
+      margin-top: 1.25rem;
+      display: none;
+      text-align: center;
+    }
+    #analyze-btn {
+      font-size: 1rem;
+      padding: 0.6rem 0;
+      width: 60%;
+    }
+
+    /* Red Door requirement message */
+    #red-door-msg {
+      display: none;
+      margin-top: 0.4rem;
+      font-size: 0.82rem;
+      color: #c9952a;
+    }
+
+    /* Deck charts container */
+    #deck-charts { margin-top: 0.5rem; }
+
+    /* Config hint text */
+    .cfg-hint {
+      color: #6a5030;
+      font-size: 0.8rem;
+    }
+
+    /* "Poor setups are mulliganed" notice */
+    .cfg-poor-notice {
+      text-align: center;
+      margin-top: 1rem;
+      font-size: 0.85rem;
+      color: #c9952a;
+      letter-spacing: 0.04em;
+    }
+
+    /* Sort criteria description */
+    .sort-desc {
+      font-size: 0.82rem;
+      color: #6a5030;
+      margin: 0.5rem 0 0 0;
+    }
+
+    /* Deck table card legend */
+    .deck-legend {
+      font-size: 0.78rem;
+      color: #6a5030;
+      line-height: 1.8;
+      margin-bottom: 0.75rem;
+      margin-top: 0.75rem;
+    }
+
+    /* SVG chart base */
+    .chart-svg {
+      width: 100%;
+      display: block;
+      overflow: visible;
+    }
+    .chart-svg-mt { margin-top: 1.5rem; }
+
+    /* No-data placeholder */
+    .chart-no-data {
+      color: #6a5030;
+      font-size: 0.85rem;
+      text-align: center;
+      padding: 1rem 0;
+    }
+
+    /* SVG chart series / legend groups */
+    [data-si] { transition: opacity 0.15s; }
+    [data-li] { cursor: pointer; transition: opacity 0.15s; }
+
+    /* SVG bar cursor */
+    .chart-bar { cursor: default; }
   </style>
 </head>
 <body>
@@ -772,20 +927,20 @@
     <p>A setup analyzer for A Game of Thrones: The Card Game - 2nd Edition</p>
   </header>
 
-  <div class="panel" style="width:100%; max-width:680px; margin: 2rem auto 0;">
+  <div class="panel" id="how-it-works-panel">
     <details>
-      <summary style="cursor:pointer; color:#c9952a; font-size:1.1rem; font-family:'Georgia',serif; letter-spacing:0.03em; user-select:none;">How it works</summary>
-      <p style="font-size:0.85rem; color:#a89060; line-height:1.7; margin-top:0.75rem; margin-bottom:0.75rem;">
+      <summary class="panel-summary">How it works</summary>
+      <p class="info-text">
         Lightbringer analyzes the setups for a <em>A Game of Thrones: The Card Game - 2nd Edition</em> deck.
         Paste a <a href="https://thronesdb.com">ThronesDB</a> deck URL and click <strong>Analyze</strong> to test the setup of <strong>5000 opening hands</strong>.
       </p>
-      <p style="font-size:0.85rem; color:#a89060; line-height:1.7; margin-bottom:0.75rem;">
+      <p class="info-text">
         For each hand, every valid setup is evaluated.
         The <strong>best setup</strong> is selected according to configurable ranking criteria — see <strong>Setup Ranking Criteria</strong> below.
         If the best setup is considered <strong>poor</strong> (failing any configured requirement), a
         <strong>mulligan</strong> is taken — a fresh hand is drawn and evaluated once more.
       </p>
-      <p style="font-size:0.85rem; color:#a89060; line-height:1.7;">
+      <p class="info-text">
         The results include summary statistics, several distribution charts, and a simulation log of up to 100 hands.
         Use the <strong>Configuration</strong> section below to define what counts as a poor setup, to mark
         economy, key, avoidable, and restricted cards, and to re-order the ranking criteria.
@@ -793,8 +948,8 @@
     </details>
   </div>
 
-  <div class="panel" style="width:100%; max-width:680px; margin-top:1.5rem;">
-    <label for="deck-url" style="display:block; color:#c9952a; font-size:1.1rem; font-family:'Georgia',serif; letter-spacing:0.03em; margin-bottom:0.5rem;">Deck</label>
+  <div class="panel" id="deck-input-panel">
+    <label for="deck-url" class="panel-label">Deck</label>
     <div class="input-row">
       <input
         type="text"
@@ -806,19 +961,19 @@
       <button id="load-deck-btn" onclick="fetchAndRenderDeckTable()">Load</button>
     </div>
     <div id="status"></div>
-    <div id="deck-title" style="display:none; align-items:center; justify-content:center; gap:0.5rem; margin-top:0.75rem;"></div>
+    <div id="deck-title"></div>
 
-    <details id="deck-table-details" style="margin-top:1rem; display:none;">
-      <summary style="cursor:pointer; color:#c9952a; font-size:1.1rem; font-family:'Georgia',serif; letter-spacing:0.03em; user-select:none;">Cards</summary>
+    <details id="deck-table-details">
+      <summary class="panel-summary">Cards</summary>
       <div class="details-body">
         <div id="deck-table-section"></div>
       </div>
     </details>
 
-    <details id="config-details" open style="margin-top:1.25rem; display:none;">
-      <summary style="cursor:pointer; color:#c9952a; font-size:1.1rem; font-family:'Georgia',serif; letter-spacing:0.03em; user-select:none;">Configuration</summary>
+    <details id="config-details" open>
+      <summary class="panel-summary">Configuration</summary>
       <div id="config-details-body" class="details-body">
-        <div class="config-controls" style="margin-top:1rem;">
+        <div class="config-controls">
           <label>A setup is considered poor if:</label>
           <label class="cfg-check">
             <input type="checkbox" id="cfg-two-chars" checked>
@@ -830,48 +985,48 @@
           </label>
           <label class="cfg-check">
             <input type="checkbox" id="cfg-economy" checked>
-            <span>It has no economy cards <span style="color:#6a5030; font-size:0.8rem;">— Economy cards are marked with 💰 in the deck table above.</span></span>
+            <span>It has no economy cards <span class="cfg-hint">— Economy cards are marked with 💰 in the deck table above.</span></span>
           </label>
           <label class="cfg-check">
             <input type="checkbox" id="cfg-key-cards">
-            <span>It has no key cards <span style="color:#6a5030; font-size:0.8rem;">— Key cards are marked with 🗝️ in the deck table above.</span></span>
+            <span>It has no key cards <span class="cfg-hint">— Key cards are marked with 🗝️ in the deck table above.</span></span>
           </label>
           <label class="cfg-check">
             <input type="checkbox" id="cfg-no-avoidable">
-            <span>It has avoidable cards <span style="color:#6a5030; font-size:0.8rem;">— Avoidable cards are marked with 😐 in the deck table above.</span></span>
+            <span>It has avoidable cards <span class="cfg-hint">— Avoidable cards are marked with 😐 in the deck table above.</span></span>
           </label>
           <div class="cfg-inline-num">
             <span>It has fewer than</span>
             <input type="number" id="cfg-min-cards" min="1" max="7" value="3">
             <span>cards</span>
           </div>
-          <p style="text-align:center; margin-top:1rem; font-size:0.85rem; color:#c9952a; letter-spacing:0.04em;">Poor setups are mulliganed.</p>
+          <p class="cfg-poor-notice">Poor setups are mulliganed.</p>
         </div>
       </div><!-- /config-details-body -->
     </details>
 
-    <details id="sort-details" open style="margin-top:1.25rem; display:none;">
-      <summary style="cursor:pointer; color:#c9952a; font-size:1.1rem; font-family:'Georgia',serif; letter-spacing:0.03em; user-select:none;">Setup Ranking Criteria</summary>
+    <details id="sort-details" open>
+      <summary class="panel-summary">Setup Ranking Criteria</summary>
       <div class="details-body">
-        <p style="font-size:0.82rem; color:#6a5030; margin:0.5rem 0 0 0;">All possible setups for a given starting hand are ranked according to these criteria, applied top to bottom — the first differentiating criterion wins. All criteria include cards placed in shadows. Drag to re-order.</p>
+        <p class="sort-desc">All possible setups for a given starting hand are ranked according to these criteria, applied top to bottom — the first differentiating criterion wins. All criteria include cards placed in shadows. Drag to re-order.</p>
         <ol id="sort-criteria-list"></ol>
       </div>
     </details>
 
-    <details id="deck-stats-details" style="margin-top:1.25rem; display:none;">
-      <summary style="cursor:pointer; color:#c9952a; font-size:1.1rem; font-family:'Georgia',serif; letter-spacing:0.03em; user-select:none;">Deck Statistics</summary>
+    <details id="deck-stats-details">
+      <summary class="panel-summary">Deck Statistics</summary>
       <div class="details-body">
-        <div id="deck-charts" style="margin-top:0.5rem;"></div>
+        <div id="deck-charts"></div>
       </div>
     </details>
 
-    <div style="margin-top:1.25rem; display:none; text-align:center;" id="analyze-btn-wrapper">
-      <button id="analyze-btn" onclick="analyze()" style="font-size:1rem; padding:0.6rem 0; width:60%;">Analyze</button>
-      <div id="red-door-msg" style="display:none; margin-top:0.4rem; font-size:0.82rem; color:#c9952a;">Select a location for 🚪 The House With the Red Door before analyzing.</div>
+    <div id="analyze-btn-wrapper">
+      <button id="analyze-btn" onclick="analyze()">Analyze</button>
+      <div id="red-door-msg">Select a location for 🚪 The House With the Red Door before analyzing.</div>
     </div>
   </div>
 
-  <div id="card-image-tooltip"><div class="card-img-skeleton"></div><img src="" alt="" style="display:none;"></div>
+  <div id="card-image-tooltip"><div class="card-img-skeleton"></div><img src="" alt=""></div>
 
   <div id="setup-section">
     <div class="panel">
@@ -1980,8 +2135,7 @@
       const yPos  = v => mT + iH - (v / yMax) * iH;
       const barHt = v => (v / yMax) * iH;
 
-      let s = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg"
-        style="width:100%;display:block;margin-top:1.5rem;overflow:visible">`;
+      let s = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" class="chart-svg chart-svg-mt">`;
 
       // Chart title
       s += `<text x="${(W / 2).toFixed(1)}" y="${mT - 16}"
@@ -2004,7 +2158,7 @@
         const bh = barHt(v);
         s += `<rect x="${bx.toFixed(1)}" y="${by.toFixed(1)}"
           width="${bw.toFixed(1)}" height="${bh.toFixed(1)}"
-          fill="${iconColors[i]}" rx="2" style="cursor:default">
+          fill="${iconColors[i]}" rx="2" class="chart-bar">
           <title>Total: ${iconTotals[i]}</title>
         </rect>`;
         s += `<text x="${(bx + bw / 2).toFixed(1)}" y="${(by - 5).toFixed(1)}"
@@ -2062,8 +2216,7 @@
       const yPos  = v => mT + iH - (v / yMax) * iH;
       const barHt = v => (v / yMax) * iH;
 
-      let s = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg"
-        style="width:100%;display:block;margin-top:1.5rem;overflow:visible">`;
+      let s = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" class="chart-svg chart-svg-mt">`;
 
       // Chart title
       s += `<text x="${(W / 2).toFixed(1)}" y="${mT - 16}"
@@ -2087,7 +2240,7 @@
         const pct = Math.round(v / SIM_COUNT * 100);
         s += `<rect x="${bx.toFixed(1)}" y="${by.toFixed(1)}"
           width="${bw.toFixed(1)}" height="${bh.toFixed(1)}"
-          fill="${v > 0 ? '#c9952a' : '#2a1c08'}" rx="2" style="cursor:default">
+          fill="${v > 0 ? '#c9952a' : '#2a1c08'}" rx="2" class="chart-bar">
           ${v > 0 ? `<title>${pct}%</title>` : ''}
         </rect>`;
         if (v > 0) {
@@ -2185,7 +2338,7 @@
         yLabel      = '# Cards',
       } = opts;
 
-      if (!values.length) return `<p style="color:#6a5030;font-size:0.85rem;text-align:center;padding:1rem 0;">No data</p>`;
+      if (!values.length) return `<p class="chart-no-data">No data</p>`;
 
       const maxVal = Math.max(...values, 1);
       const rawStep = maxVal / 4;
@@ -2206,7 +2359,7 @@
       const yPos = v => mT + iH - (v / yMax) * iH;
       const barHt = v => Math.max(0, (v / yMax) * iH);
 
-      let s = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;overflow:visible">`;
+      let s = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" class="chart-svg">`;
 
       // Title
       s += `<text x="${(W / 2).toFixed(1)}" y="${mT - 14}"
@@ -2280,7 +2433,7 @@
         for (let i = 0; i < s.values.length; i++) allX.add(s.xOffset + i);
       }
       const xVals = [...allX].sort((a, b) => a - b);
-      if (!xVals.length) return `<p style="color:#6a5030;font-size:0.85rem;text-align:center;padding:1rem 0;">No data</p>`;
+      if (!xVals.length) return `<p class="chart-no-data">No data</p>`;
 
       // Map each series onto the common x-axis (0 where series has no value)
       const resolved = series
@@ -2293,7 +2446,7 @@
             return (i >= 0 && i < s.values.length) ? (s.values[i] || 0) : 0;
           }),
         }));
-      if (!resolved.length) return `<p style="color:#6a5030;font-size:0.85rem;text-align:center;padding:1rem 0;">No data</p>`;
+      if (!resolved.length) return `<p class="chart-no-data">No data</p>`;
 
       // Y-axis scale
       const yRaw = Math.max(...resolved.flatMap(s => s.points), 1);
@@ -2312,7 +2465,7 @@
       const xPos = i => n <= 1 ? mL + iW / 2 : mL + (i / (n - 1)) * iW;
       const yPos = v => mT + iH - (v / yMax) * iH;
 
-      let s = `<svg id="${chartId}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;overflow:visible">`;
+      let s = `<svg id="${chartId}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" class="chart-svg">`;
 
       // Title
       s += `<text x="${(W / 2).toFixed(1)}" y="${mT - 16}"
@@ -2328,7 +2481,7 @@
       // Series groups — each wrapped in a <g> for opacity toggling
       for (let si = 0; si < resolved.length; si++) {
         const sr = resolved[si];
-        s += `<g data-si="${si}" style="transition:opacity 0.15s">`;
+        s += `<g data-si="${si}">`;
         const pts = sr.points.map((v, i) => `${xPos(i).toFixed(1)},${yPos(v).toFixed(1)}`).join(' ');
         s += `<polyline points="${pts}" fill="none" stroke="${sr.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
         for (let i = 0; i < sr.points.length; i++) {
@@ -2372,7 +2525,7 @@
       const legendX0 = mL + (iW - totalW) / 2;
       for (let i = 0; i < resolved.length; i++) {
         const lx = legendX0 + i * itemW;
-        s += `<g data-li="${i}" style="cursor:pointer;transition:opacity 0.15s" onclick="deckLineToggle('${chartId}',${i})">`;
+        s += `<g data-li="${i}" onclick="deckLineToggle('${chartId}',${i})">`;
         s += `<rect x="${lx.toFixed(1)}" y="${(legendY - 8).toFixed(1)}" width="${(itemW - 2).toFixed(1)}" height="16" fill="transparent"/>`;
         s += `<line x1="${lx.toFixed(1)}" y1="${legendY}" x2="${(lx + 20).toFixed(1)}" y2="${legendY}" stroke="${resolved[i].color}" stroke-width="2"/>`;
         s += `<circle cx="${(lx + 10).toFixed(1)}" cy="${legendY}" r="3" fill="${resolved[i].color}"/>`;
@@ -2515,7 +2668,7 @@
       const bar = (data, title, opts = {}) =>
         data.values.length
           ? renderDeckBar(data.values, data.labels, title, opts)
-          : `<p style="color:#6a5030;font-size:0.85rem;text-align:center;padding:1rem 0;">No data</p>`;
+          : `<p class="chart-no-data">No data</p>`;
 
       const row = (...cells) => `<div class="deck-chart-grid">${cells.map(c => `<div class="deck-chart-cell">${c}</div>`).join('')}</div>`;
 
@@ -2548,7 +2701,7 @@
       const msg = document.getElementById('red-door-msg');
       const needsSelection = hasRedDoor && !getRedDoorLocationCode();
       btn.disabled = needsSelection;
-      msg.style.display = needsSelection ? '' : 'none';
+      msg.style.display = needsSelection ? 'block' : 'none';
     }
 
     const FACTION_COLORS = {
@@ -2583,7 +2736,7 @@
       const details  = document.getElementById('deck-table-details');
       const btn = document.getElementById('analyze-btn');
       const btnWrapper = document.getElementById('analyze-btn-wrapper');
-      if (!deckId) { section.innerHTML = ''; details.style.display = 'none'; document.getElementById('config-details').style.display = 'none'; document.getElementById('sort-details').style.display = 'none'; document.getElementById('deck-stats-details').style.display = 'none'; btnWrapper.style.display = 'none'; document.getElementById('deck-title').style.display = 'none'; setStatus(''); return; }
+      if (!deckId) { section.innerHTML = ''; details.style.display = ''; document.getElementById('config-details').style.display = ''; document.getElementById('sort-details').style.display = ''; document.getElementById('deck-stats-details').style.display = ''; btnWrapper.style.display = ''; document.getElementById('deck-title').style.display = ''; setStatus(''); return; }
 
       setStatus('Loading deck data…', 'loading');
       try {
@@ -2605,7 +2758,7 @@
             return ta !== tb ? ta - tb : a.card.name.localeCompare(b.card.name);
           });
 
-        if (rows.length === 0) { section.innerHTML = ''; details.style.display = 'none'; document.getElementById('config-details').style.display = 'none'; document.getElementById('sort-details').style.display = 'none'; document.getElementById('deck-stats-details').style.display = 'none'; btnWrapper.style.display = 'none'; document.getElementById('deck-title').style.display = 'none'; return; }
+        if (rows.length === 0) { section.innerHTML = ''; details.style.display = ''; document.getElementById('config-details').style.display = ''; document.getElementById('sort-details').style.display = ''; document.getElementById('deck-stats-details').style.display = ''; btnWrapper.style.display = ''; document.getElementById('deck-title').style.display = ''; return; }
 
         const knownEconomyIds    = new Set([...knowEconomyCards].map(e => e.id));
         const knownAvoidableIds  = new Set([...knownAvoidableCards].map(e => e.id));
@@ -2657,12 +2810,12 @@
         const subtitle = agendaNames ? `${factionName} · ${agendaNames}` : factionName;
         const deckTitleEl = document.getElementById('deck-title');
         deckTitleEl.innerHTML = `
-          <div style="display:flex; flex-direction:column; align-items:center; gap:0.25rem;">
-            <div style="display:flex; align-items:center; gap:0.5rem;">
-              <span class="icon-${decklist.faction_code}" style="font-family:'thronesdb'; font-size:1.4rem; color:${factionColor}; line-height:1;"></span>
-              <span style="font-family:'Georgia',serif; font-size:1.1rem; color:#e8d5a3;">${decklist.name}</span>
+          <div class="deck-title-inner">
+            <div class="deck-title-row">
+              <span class="icon-${decklist.faction_code} deck-title-faction-icon" style="color:${factionColor};"></span>
+              <span class="deck-title-name">${decklist.name}</span>
             </div>
-            <div style="font-size:0.82rem; color:#6a5030;">${subtitle}</div>
+            <div class="deck-title-subtitle">${subtitle}</div>
           </div>`;
         deckTitleEl.style.display = 'flex';
 
@@ -2671,7 +2824,7 @@
           : '';
         const redDoorHeader = hasRedDoor ? '<th>🚪</th>' : '';
         section.innerHTML = `
-          <div style="font-size:0.78rem; color:#6a5030; line-height:1.8; margin-bottom:0.75rem; margin-top:0.75rem;">
+          <div class="deck-legend">
             <div>💰 — <b>Economy</b>: Cards that contribute to the deck economy (e.g. limited, provides income, cost reduction)</div>
             <div>🗝️ — <b>Key</b>: Cards that are crucial to the deck and are a priority for setup</div>
             <div>😐 — <b>Avoidable</b>: Cards that should be avoided in setup because they have reactions to entering play (e.g. cards with Bestow)</div>
@@ -2690,14 +2843,14 @@
             <tbody>${trs}</tbody>
           </table>`;
         setStatus('');
-        details.style.display = '';
+        details.style.display = 'block';
         details.setAttribute('open', '');
-        document.getElementById('config-details').style.display = '';
-        document.getElementById('sort-details').style.display = '';
+        document.getElementById('config-details').style.display = 'block';
+        document.getElementById('sort-details').style.display = 'block';
         renderSortCriteria();
-        document.getElementById('deck-stats-details').style.display = '';
+        document.getElementById('deck-stats-details').style.display = 'block';
         document.getElementById('deck-charts').innerHTML = renderDeckCharts(slots, cardMap);
-        btnWrapper.style.display = '';
+        btnWrapper.style.display = 'block';
 
         // Red Door: mutual exclusion — only one 🚪 checkbox may be checked at a time.
         // Also disable the row's other checkboxes while a location is selected.
@@ -2722,12 +2875,12 @@
       } catch (err) {
         setStatus(`Error: ${err.message}`, 'error');
         section.innerHTML = '';
-        details.style.display = 'none';
-        document.getElementById('config-details').style.display = 'none';
-        document.getElementById('sort-details').style.display = 'none';
-        document.getElementById('deck-stats-details').style.display = 'none';
-        btnWrapper.style.display = 'none';
-        document.getElementById('deck-title').style.display = 'none';
+        details.style.display = '';
+        document.getElementById('config-details').style.display = '';
+        document.getElementById('sort-details').style.display = '';
+        document.getElementById('deck-stats-details').style.display = '';
+        btnWrapper.style.display = '';
+        document.getElementById('deck-title').style.display = '';
       }
     }
 
