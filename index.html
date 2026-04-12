@@ -769,7 +769,7 @@
 
   <header>
     <h1>Lightbringer</h1>
-    <p>A setup analyzer for A Game Of Thrones: Card Game - 2nd Edition</p>
+    <p>A setup analyzer for A Game of Thrones: The Card Game - 2nd Edition</p>
   </header>
 
   <div class="panel" style="width:100%; max-width:680px; margin: 2rem auto 0;">
@@ -781,15 +781,14 @@
       </p>
       <p style="font-size:0.85rem; color:#a89060; line-height:1.7; margin-bottom:0.75rem;">
         For each hand, every valid setup is evaluated.
-        The <strong>best setup</strong> is selected according to a ranking that prioritises: avoiding poor setups,
-        maximising card count, key cards, virtual gold (cost + income provided), economy cards, and character strength.
+        The <strong>best setup</strong> is selected according to configurable ranking criteria — see <strong>Setup Ranking Criteria</strong> below.
         If the best setup is considered <strong>poor</strong> (failing any configured requirement), a
         <strong>mulligan</strong> is taken — a fresh hand is drawn and evaluated once more.
       </p>
       <p style="font-size:0.85rem; color:#a89060; line-height:1.7;">
-        The results include summary statistics, several distribution charts, and a log of the first 100 simulated hands.
+        The results include summary statistics, several distribution charts, and a simulation log of up to 100 hands.
         Use the <strong>Configuration</strong> section below to define what counts as a poor setup, to mark
-        economy, key, avoidable, and restricted cards, and to re-define how setups are ranked.
+        economy, key, avoidable, and restricted cards, and to re-order the ranking criteria.
       </p>
     </details>
   </div>
@@ -820,10 +819,10 @@
       <summary style="cursor:pointer; color:#c9952a; font-size:1.1rem; font-family:'Georgia',serif; letter-spacing:0.03em; user-select:none;">Configuration</summary>
       <div id="config-details-body" class="details-body">
         <div class="config-controls" style="margin-top:1rem;">
-          <label>A setup is considered poor if (poor setups are mulliganed):</label>
+          <label>A setup is considered poor if:</label>
           <label class="cfg-check">
             <input type="checkbox" id="cfg-two-chars" checked>
-            It has less than 2 characters
+            It has fewer than 2 characters
           </label>
           <label class="cfg-check">
             <input type="checkbox" id="cfg-four-cost">
@@ -842,10 +841,11 @@
             <span>It has avoidable cards <span style="color:#6a5030; font-size:0.8rem;">— Avoidable cards are marked with 😐 in the deck table above.</span></span>
           </label>
           <div class="cfg-inline-num">
-            <span>It has less than</span>
+            <span>It has fewer than</span>
             <input type="number" id="cfg-min-cards" min="1" max="7" value="3">
             <span>cards</span>
           </div>
+          <p style="text-align:center; margin-top:1rem; font-size:0.85rem; color:#c9952a; letter-spacing:0.04em;">Poor setups are mulliganed.</p>
         </div>
       </div><!-- /config-details-body -->
     </details>
@@ -853,7 +853,7 @@
     <details id="sort-details" open style="margin-top:1.25rem; display:none;">
       <summary style="cursor:pointer; color:#c9952a; font-size:1.1rem; font-family:'Georgia',serif; letter-spacing:0.03em; user-select:none;">Setup Ranking Criteria</summary>
       <div class="details-body">
-        <p style="font-size:0.82rem; color:#6a5030; margin:0.5rem 0 0 0;">All possible setups for a given starting hand are ranked according to this criteria, which are applied top to bottom — the first differentiating criterion wins. All criteria inlcude cards setup into shadows. Drag to re-order.</p>
+        <p style="font-size:0.82rem; color:#6a5030; margin:0.5rem 0 0 0;">All possible setups for a given starting hand are ranked according to these criteria, applied top to bottom — the first differentiating criterion wins. All criteria include cards placed in shadows. Drag to re-order.</p>
         <ol id="sort-criteria-list"></ol>
       </div>
     </details>
@@ -878,7 +878,7 @@
       <div class="panel-header">
         <div>
           <div class="panel-title">Setup Simulation Results</div>
-          <div class="panel-subtitle">Best setup across 5000 simulated hands</div>
+          <div class="panel-subtitle">Results across 5000 simulated hands</div>
         </div>
       </div>
 
@@ -1852,7 +1852,7 @@
           <div class="stat-card good">
             <div class="stat-value">${economyCount}</div>
             <div class="stat-pct">${pct(economyCount)} of ${SIM_COUNT}</div>
-            <div class="stat-label">With Economy</div>
+            <div class="stat-label">With Economy Card</div>
           </div>
           <div class="stat-card">
             <div class="stat-value">${limitedCount}</div>
