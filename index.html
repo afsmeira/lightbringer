@@ -833,7 +833,7 @@
     <details id="sort-details" open style="margin-top:1.25rem; display:none;">
       <summary style="cursor:pointer; color:#c9952a; font-size:1.1rem; font-family:'Georgia',serif; letter-spacing:0.03em; user-select:none;">Setup Ranking Criteria</summary>
       <div class="details-body">
-        <p style="font-size:0.82rem; color:#6a5030; margin:0.5rem 0 0 0;">All possible setups for a given starting hand are ranked according to this criteria, which are applied top to bottom — the first differentiating criterion wins. Drag to re-order.</p>
+        <p style="font-size:0.82rem; color:#6a5030; margin:0.5rem 0 0 0;">All possible setups for a given starting hand are ranked according to this criteria, which are applied top to bottom — the first differentiating criterion wins. All criteria inlcude cards setup into shadows. Drag to re-order.</p>
         <ol id="sort-criteria-list"></ol>
       </div>
     </details>
@@ -1632,6 +1632,15 @@
           const ndc = cards => cards.filter(c => c.type_name === 'Character' && !c.isDuplicate);
           const str = cards => ndc(cards).reduce((s, c) => s + (c.strength || 0), 0);
           return str(b.cards) - str(a.cards);
+        }
+      },
+      {
+        id: 'shadow-count',
+        label: 'Number of cards in shadows',
+        hint: 'More is better',
+        compare(a, b) {
+          return b.cards.filter(c => c.inShadow).length
+               - a.cards.filter(c => c.inShadow).length;
         }
       },
     ];
