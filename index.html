@@ -497,26 +497,31 @@
       transform: rotate(45deg);
     }
 
-    .cfg-slider-row {
+    .cfg-inline-num {
       display: flex;
       align-items: center;
-      gap: 0.6rem;
+      gap: 0.4rem;
       font-size: 0.88rem;
       color: #c8b880;
+      margin-top: 0.35rem;
     }
 
-    .cfg-slider-row input[type="range"] {
-      flex: 1;
-      accent-color: #c9952a;
-      cursor: pointer;
-    }
-
-    .cfg-slider-val {
-      font-family: sans-serif;
-      font-weight: bold;
+    .cfg-inline-num input[type="number"] {
+      width: 4rem;
+      background: #120c04;
+      border: 1px solid #4a3510;
+      border-radius: 5px;
+      padding: 0.2rem 0.4rem;
       color: #c9952a;
-      min-width: 1.2em;
-      text-align: right;
+      font-family: sans-serif;
+      font-size: 0.88rem;
+      font-weight: bold;
+      text-align: center;
+      outline: none;
+    }
+
+    .cfg-inline-num input[type="number"]:focus {
+      border-color: #c9952a;
     }
 
     .setup-combo.poor {
@@ -836,10 +841,10 @@
             <input type="checkbox" id="cfg-no-avoidable">
             <span>It has avoidable cards <span style="color:#6a5030; font-size:0.8rem;">— Avoidable cards are marked with 😐 in the deck table above.</span></span>
           </label>
-          <div class="cfg-slider-row">
-            <span>It has less than this number of cards</span>
-            <input type="range" id="cfg-min-cards" min="1" max="7" value="3">
-            <span class="cfg-slider-val" id="cfg-min-cards-val">3</span>
+          <div class="cfg-inline-num">
+            <span>It has less than</span>
+            <input type="number" id="cfg-min-cards" min="1" max="7" value="3">
+            <span>cards</span>
           </div>
         </div>
       </div><!-- /config-details-body -->
@@ -2726,9 +2731,6 @@
       }
     }
 
-    document.getElementById('cfg-min-cards').addEventListener('input', function () {
-      document.getElementById('cfg-min-cards-val').textContent = this.value;
-    });
 
     // Card image tooltip
     {
