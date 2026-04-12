@@ -840,6 +840,7 @@
 
     <div style="margin-top:1.25rem; display:none; text-align:center;" id="analyze-btn-wrapper">
       <button id="analyze-btn" onclick="analyze()" style="font-size:1rem; padding:0.6rem 0; width:60%;">Analyze</button>
+      <div id="red-door-msg" style="display:none; margin-top:0.4rem; font-size:0.82rem; color:#c9952a;">Select a location for 🚪 The House With the Red Door before analyzing.</div>
     </div>
   </div>
 
@@ -868,6 +869,7 @@
     let cachedCards    = null;
     let currentSlots   = null;   // { code: qty, … } for active deck
     let currentCardMap = null;
+    let hasRedDoor     = false;  // true when deck contains agenda 08039
 
     // Cards that provide economy benefits but aren't limited or provide income.
     const knowEconomyCards = new Set([
@@ -1344,12 +1346,21 @@
 
     const NON_DECK_TYPES = new Set(['Agenda', 'Plot']);
 
-    function buildDeckPool(slots, cardMap) {
+    function buildDeckPool(slots, cardMap, redDoorCode) {
       const pool = [];
+      let redDoorRemoved = false;
       for (const [code, qty] of Object.entries(slots)) {
         const card = cardMap[code];
         if (!card || NON_DECK_TYPES.has(card.type_name)) continue;
-        for (let i = 0; i < qty; i++) pool.push(card);
+        for (let i = 0; i < qty; i++) {
+          // Remove exactly one copy of the Red Door location from the pool —
+          // it's played behind the door before setup begins.
+          if (redDoorCode && code === redDoorCode && !redDoorRemoved) {
+            redDoorRemoved = true;
+            continue;
+          }
+          pool.push(card);
+        }
       }
       return pool;
     }
@@ -1468,13 +1479,17 @@
       });
     }
 
-    function allValidSetups(hand) {
+    function allValidSetups(hand, redDoorCode) {
       // Only consider cards that can be set up.
       // Events are only eligible if they have shadow (always go into shadows).
       // Cards with cost "-" always have shadow and go into shadows at SHADOW_COST.
       const eligible = hand
         .filter(c => (SETUP_TYPES.has(c.type_name) || (c.type_name === 'Event' && c.shadow)) && (cardCost(c) !== null || c.shadow))
         .map(c => ({ ...c, _cost: cardCost(c) ?? 0 }));
+
+      // Red Door agenda: setup gold is 4 instead of 8; the selected location is already
+      // "in play" so any copy in hand is always a duplicate.
+      const effectiveGold = redDoorCode ? 4 : SETUP_GOLD;
 
       const results = [];
       const n = eligible.length;
@@ -1491,7 +1506,8 @@
 
           // Unique cards: first copy costs full price, extra copies are duplicates (free)
           // Non-unique cards: each copy always costs its full price
-          const uniqueSeen = new Set();
+          // Pre-seed with the Red Door location so any copy in hand is always a duplicate.
+          const uniqueSeen = new Set(redDoorCode ? [redDoorCode] : []);
           let total = 0;
           let cardsWithDetails = combo.map((card) => {
             const inShadow = !!card.shadow;
@@ -1528,7 +1544,7 @@
           total = cardsWithDetails.reduce((sum, c) => sum + c.effectiveCost, 0);
 
           const limitedCount = cardsWithDetails.filter(c => c.is_limited).length;
-          if (total <= SETUP_GOLD && limitedCount <= 1) {
+          if (total <= effectiveGold && limitedCount <= 1) {
             const key = cardsWithDetails.map(c => `${c.code}:${c.inShadow ? 's' : 'n'}`).sort().join('|');
             if (!seen.has(key)) {
               seen.add(key);
@@ -1689,7 +1705,8 @@
 
       // Defer to next frame so the browser can repaint before the heavy loop
       setTimeout(() => {
-        const pool = buildDeckPool(currentSlots, currentCardMap);
+        const redDoorCode = hasRedDoor ? getRedDoorLocationCode() : null;
+        const pool = buildDeckPool(currentSlots, currentCardMap, redDoorCode);
         let poorCount = 0, economyCount = 0, limitedCount = 0, mulliganCount = 0, mulliganSuccessCount = 0;
         let totalGold = 0, totalCards = 0;
         const goldDist      = new Array(SETUP_GOLD + 1).fill(0);
@@ -1711,19 +1728,29 @@
         for (let i = 0; i < SIM_COUNT; i++) {
           let initialHand  = drawHand(pool, 7);
           let mulliganHand = null;
-          let sorted       = sortSetups(allValidSetups(filterRestricted(initialHand)));
+          let sorted       = sortSetups(allValidSetups(filterRestricted(initialHand), redDoorCode));
           let best         = sorted.length > 0 ? sorted[0] : null;
 
           // Mulligan if best setup is poor (or no setup at all)
           if (!best || isPoorSetup(best.cards)) {
             mulliganCount++;
             mulliganHand = drawHand(pool, 7);
-            sorted = sortSetups(allValidSetups(filterRestricted(mulliganHand)));
+            sorted = sortSetups(allValidSetups(filterRestricted(mulliganHand), redDoorCode));
             best   = sorted.length > 0 ? sorted[0] : null;
             if (best && !isPoorSetup(best.cards)) mulliganSuccessCount++;
           }
 
           const hand = mulliganHand ?? initialHand;
+
+          if (!best) {
+            poorCount++;
+            simLog.push({
+              initialHand:  initialHand.map(c => ({ name: c.name, type: c.type_name, isShadowEvent: c.type_name === 'Event' && !!c.shadow, isRestricted: cardInSet(c, restrictedSet) })),
+              mulliganHand: mulliganHand ? mulliganHand.map(c => ({ name: c.name, type: c.type_name, isShadowEvent: c.type_name === 'Event' && !!c.shadow, isRestricted: cardInSet(c, restrictedSet) })) : null,
+              setup: null, total: 0,
+            });
+            continue;
+          }
 
           if (isPoorSetup(best.cards)) poorCount++;
           goldDist[best.total]++;
@@ -2089,6 +2116,19 @@
       document.getElementById('load-deck-btn').disabled = locked;
     }
 
+    function getRedDoorLocationCode() {
+      const cb = document.querySelector('#deck-table-section .red-door-cb:checked');
+      return cb ? cb.closest('tr').dataset.code : null;
+    }
+
+    function updateAnalyzeButton() {
+      const btn = document.getElementById('analyze-btn');
+      const msg = document.getElementById('red-door-msg');
+      const needsSelection = hasRedDoor && !getRedDoorLocationCode();
+      btn.disabled = needsSelection;
+      msg.style.display = needsSelection ? '' : 'none';
+    }
+
     const FACTION_COLORS = {
       stark:         '#cfcfcf',
       lannister:     '#c00106',
@@ -2131,6 +2171,8 @@
         ]);
 
         const slots = decklist.slots || {};
+        hasRedDoor = Object.keys(slots).includes('08039');
+
         const rows = Object.entries(slots)
           .map(([code, qty]) => ({ card: cardMap[code], qty }))
           .filter(({ card }) => card && !NON_DECK_TYPES.has(card.type_name))
@@ -2149,6 +2191,7 @@
         const opponentRestrictedIds = new Set(
           [...attachmentWithRestrictions].filter(e => e.opponent === true).map(e => e.id)
         );
+        const colCount = hasRedDoor ? 6 : 5;
         let lastType = null;
         const trs = rows.map(({ card, qty }) => {
           const name = qty > 1 ? `${card.label || card.name} ×${qty}` : (card.label || card.name);
@@ -2160,8 +2203,17 @@
           const isRestricted  = knownRestrictedIds.has(card.code) || (card.bestow && card.type_name !== 'Character') || isOpponentRestricted;
           const cb = (checked, disabled) =>
             `<input type="checkbox"${checked ? ' checked' : ''}${disabled ? ' disabled' : ''}>`;
+          const isRedDoorEligible = hasRedDoor
+            && card.type_name === 'Location'
+            && card.is_unique
+            && !card.is_limited
+            && parseInt(card.cost) <= 3
+            && !isDisabled;
+          const redDoorCell = hasRedDoor
+            ? `<td>${isRedDoorEligible ? cb(false, false).replace('<input', '<input class="red-door-cb"') : ''}</td>`
+            : '';
           const separator = card.type_name !== lastType
-            ? `<tr class="deck-table-type-sep"><td colspan="5">${card.type_name}</td></tr>`
+            ? `<tr class="deck-table-type-sep"><td colspan="${colCount}">${card.type_name}</td></tr>`
             : '';
           lastType = card.type_name;
           return `${separator}<tr data-code="${card.code}"${isDisabled ? ' class="deck-table-disabled"' : ''}>
@@ -2170,6 +2222,7 @@
             <td>${cb(false, isDisabled).replace('<input', '<input class="key-cb"')}</td>
             <td>${cb(isAvoidable, isDisabled).replace('<input', '<input class="avoidable-cb"')}</td>
             <td>${cb(isRestricted, isDisabled).replace('<input', '<input class="restricted-cb"')}</td>
+            ${redDoorCell}
           </tr>`;
         }).join('');
 
@@ -2191,12 +2244,17 @@
           </div>`;
         deckTitleEl.style.display = 'flex';
 
+        const redDoorLegend = hasRedDoor
+          ? `<div>🚪 — <b>Red Door</b>: The unique location set up behind The House With the Red Door (cost ≤ 3, non-limited). Exactly one must be selected. It is removed from the deck before setup and setup gold is reduced to 4.</div>`
+          : '';
+        const redDoorHeader = hasRedDoor ? '<th>🚪</th>' : '';
         section.innerHTML = `
           <div style="font-size:0.78rem; color:#6a5030; line-height:1.8; margin-bottom:0.75rem; margin-top:0.75rem;">
             <div>💰 — <b>Economy</b>: Cards that contribute to the deck economy (e.g. limited, provides income, cost reduction)</div>
             <div>🗝️ — <b>Key</b>: Cards that are crucial to the deck and are a priority for setup</div>
             <div>😐 — <b>Avoidable</b>: Cards that should be avoided in setup because they have reactions to entering play (e.g. cards with Bestow)</div>
             <div>🚫 — <b>Restricted</b>: Cards that are illegal to be played during setup (e.g. never have valid targets) or that make no sense (e.g. Milk of the Poppy). These cards are never selected for setups.</div>
+            ${redDoorLegend}
           </div>
           <table class="deck-table">
             <thead><tr>
@@ -2205,6 +2263,7 @@
               <th>🗝️</th>
               <th>😐</th>
               <th>🚫</th>
+              ${redDoorHeader}
             </tr></thead>
             <tbody>${trs}</tbody>
           </table>`;
@@ -2215,6 +2274,27 @@
         document.getElementById('sort-details').style.display = '';
         renderSortCriteria();
         btnWrapper.style.display = '';
+
+        // Red Door: mutual exclusion — only one 🚪 checkbox may be checked at a time.
+        // Also disable the row's other checkboxes while a location is selected.
+        if (hasRedDoor) {
+          section.addEventListener('change', e => {
+            if (!e.target.classList.contains('red-door-cb')) return;
+            const row = e.target.closest('tr');
+            const rowCbs = row.querySelectorAll('.economy-cb, .key-cb, .avoidable-cb, .restricted-cb');
+            if (e.target.checked) {
+              section.querySelectorAll('.red-door-cb').forEach(cb => {
+                if (cb !== e.target) { cb.checked = false; cb.disabled = true; }
+              });
+              rowCbs.forEach(cb => { cb.disabled = true; });
+            } else {
+              section.querySelectorAll('.red-door-cb').forEach(cb => { cb.disabled = false; });
+              rowCbs.forEach(cb => { cb.disabled = false; });
+            }
+            updateAnalyzeButton();
+          });
+        }
+        updateAnalyzeButton();
       } catch (err) {
         setStatus(`Error: ${err.message}`, 'error');
         section.innerHTML = '';
