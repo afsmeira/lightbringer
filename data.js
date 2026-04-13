@@ -1,16 +1,83 @@
 const CARDS_API    = 'https://thronesdb.com/api/public/cards';
 const DECKLIST_API = id => `https://thronesdb.com/api/public/decklist/${id}`;
 
+/** Card types eligible for setup. */
 const SETUP_TYPES = new Set(['Character', 'Location', 'Attachment']);
-const SETUP_GOLD  = 8;
 
+/** Card types that belong to the plot deck rather than the main deck. */
+const NON_DECK_TYPES = new Set(['Agenda', 'Plot']);
+
+/** Maximum gold available during a normal setup. */
+const SETUP_GOLD = 8;
+
+/** Display order for card types in the deck table. */
+const CARD_TYPE_ORDER = { Character: 0, Attachment: 1, Location: 2, Event: 3 };
+
+// ── Faction metadata ───────────────────────────────────────────────────────
+
+/** Canonical display order for factions in charts. */
+const FACTION_ORDER = [
+  'stark', 'lannister', 'targaryen', 'baratheon',
+  'greyjoy', 'tyrell', 'thenightswatch', 'martell', 'neutral',
+];
+
+/** CSS color for each faction, used for icons and labels. */
+const FACTION_COLORS = {
+  stark:          '#cfcfcf',
+  lannister:      '#c00106',
+  targaryen:      '#9c6b9e',
+  baratheon:      '#e3d852',
+  greyjoy:        '#1d7a99',
+  tyrell:         '#509f16',
+  thenightswatch: '#7a7a7a',
+  martell:        '#e89521',
+  neutral:        '#a99560',
+};
+
+/** Human-readable name for each faction. */
+const FACTION_NAMES = {
+  stark:          "House Stark",
+  lannister:      "House Lannister",
+  targaryen:      "House Targaryen",
+  baratheon:      "House Baratheon",
+  greyjoy:        "House Greyjoy",
+  tyrell:         "House Tyrell",
+  thenightswatch: "The Night's Watch",
+  martell:        "House Martell",
+  neutral:        "Neutral",
+};
+
+/** Unicode code points in the ThronesDB icon font for each faction. */
+const FACTION_ICONS = {
+  stark:          '\ue608',
+  lannister:      '\ue603',
+  targaryen:      '\ue609',
+  baratheon:      '\ue600',
+  greyjoy:        '\ue601',
+  tyrell:         '\ue60a',
+  thenightswatch: '\ue606',
+  martell:        '\ue604',
+  neutral:        '\ue612',
+};
+
+// ── Mutable deck state ─────────────────────────────────────────────────────
+
+/** All ThronesDB cards keyed by code; populated on first API fetch. */
 let cachedCards    = null;
-let currentSlots   = null;   // { code: qty, … } for active deck
-let currentCardMap = null;
-let hasRedDoor     = false;  // true when deck contains agenda 08039
 
-// Cards that provide economy benefits but aren't limited or provide income.
-const knowEconomyCards = new Set([
+/** Slot map for the active deck: { code: qty, … }. */
+let currentSlots   = null;
+
+/** Card map for the active deck. */
+let currentCardMap = null;
+
+/** True when the active deck contains agenda 08039 (The House With the Red Door). */
+let hasRedDoor     = false;
+
+// ── Known card sets ────────────────────────────────────────────────────────
+
+/** Cards that provide economy benefits but aren't limited or don't provide income. */
+const knownEconomyCards = new Set([
   {"id":"01056", "name":"Dragonstone Faithful"},
   {"id":"01074", "name":"Iron Islands Fishmonger"},
   {"id":"01094", "name":"Lannisport Merchant"},
@@ -49,7 +116,9 @@ const knowEconomyCards = new Set([
   {"id":"26034", "name":"Queen of Meereen"},
   {"id":"26111", "name":"Howland Reed"},
 
-])
+]);
+
+/** Cards that are undesirable to have in setup (e.g. Bestow characters, conditional effects). */
 const knownAvoidableCards = new Set([
   {"id":"01028", "name":"Littlefinger"},
   {"id":"01029", "name":"Varys"},
@@ -137,7 +206,9 @@ const knownAvoidableCards = new Set([
   {"id":"26027", "name":"Ghost Hill Elite"},
   {"id":"26049", "name":"Northern Envoy"},
   {"id":"26067", "name":"Southron Informant"},
-])
+]);
+
+/** Cards that are illegal or impractical during setup (never have valid targets, etc.). */
 const knownRestrictedCards = new Set([
   {"id":"01035", "name":"Milk of the Poppy"},
   {"id":"02006", "name":"Pleasure Barge"},
@@ -165,23 +236,26 @@ const knownRestrictedCards = new Set([
   {"id":"25062", "name":"Martial Law"},
   {"id":"26094", "name":"Poisoned Locusts"}, // Should be caught by attachment restrictions during setup simulation
   {"id":"26113", "name":"War Elephants"},
-])
-// Format
-// {
-//   "predicate": string         -- A logical expression on how to compute the restrictions of this attachment
-//   "traits": [string]          -- When defined, can only be attached to cards that have at least one of the traits
-//   "excluded_traits": [string] -- When defined, can only be attached to cards that don't have any of the traits.
-//   "factions": [string]        -- When defined, can only be attached to cards that belong to one of the factions.
-//   "opponent": boolean         -- when defined, can only be attached to opponent's cards, if true, or just the player cards, if false.
-//   "title": string             -- When defined, can only be attached to card with specified title.
-//   "cost": [int]               -- When defined, can only be attached to card with specified costs.
-//   "unique": boolean           -- When defined, can only be attached to a unique card, if true, or non-unique if false.
-//   "limited": boolean          -- When defined, can only be attached to a limited card, if true, or non-limited if false.
-//   "location": boolean         -- When defined, can only be attached to a location card, if true, or non-location if false.
-//   "loyal": boolean            -- When defined, can only be attached to a non-loyal character, if true, or loyal if false.
-//   "shadow": boolean           -- When defined, can only be attached to characters with shadow, if true, or without shadow if false.
-//   "limit": int                -- When defined, can only be attached to the same character the limit number of times.
-// }
+]);
+
+/**
+ * Attachments that have placement restrictions beyond the default "attach to a character".
+ *
+ * Each entry may include:
+ *   predicate        — logical expression defining which fields to evaluate
+ *   traits           — card must have at least one of these traits
+ *   excluded_traits  — card must not have any of these traits
+ *   factions         — card must belong to one of these factions
+ *   opponent         — if true, can only target opponent cards (never valid during own setup)
+ *   title            — card must have exactly this name
+ *   cost             — card cost must be in this list
+ *   unique           — card uniqueness must match this value
+ *   limited          — card limited-status must match this value
+ *   location         — if true, attaches to a location rather than a character
+ *   loyal            — card loyalty must match this value
+ *   shadow           — card shadow-status must match this value
+ *   limit            — maximum copies attachable to the same card (≥1 always satisfied in setup)
+ */
 const attachmentWithRestrictions = new Set([
   {"id":"01032", "name":"Seal of the Hand", "traits": ["lord", "lady"], "predicate": "traits"},
   {"id":"01033", "name":"Bodyguard", "traits": ["lord", "lady"], "predicate": "traits"},

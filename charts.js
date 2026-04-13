@@ -1,4 +1,26 @@
-function renderStats(poorCount, economyCount, limitedCount, mulliganCount, mulliganSuccessCount, avgGold, avgCards, goldDist, cardsDist, charsDist, strengthDist, keyCardsDist, avoidableDist, shadowDist, iconAvg, iconTotals, iconStrengthAvg, iconStrengthTotals, simLog) {
+/** Renders a loading spinner with the given message into the #stats-display element. */
+function renderLoadingState(message) {
+  document.getElementById('stats-display').innerHTML = `
+    <div class="sim-loading">
+      <div class="sim-loading-spinner"></div>
+      <div class="sim-loading-text">${message}</div>
+    </div>`;
+}
+
+/**
+ * Renders simulation results — stat cards, distribution charts, and simulation log —
+ * into the #stats-display element.
+ */
+function renderStats(results) {
+  const {
+    poorCount, economyCount, limitedCount,
+    mulliganCount, mulliganSuccessCount,
+    avgGold, avgCards,
+    goldDist, cardsDist, charsDist, strengthDist,
+    keyCardsDist, avoidableDist, shadowDist,
+    iconAvg, iconTotals, iconStrengthAvg, iconStrengthTotals,
+    simLog,
+  } = results;
   const pct = v => `${Math.round(v / SIM_COUNT * 100)}%`;
   const mulliganPct = mulliganCount > 0 ? `${Math.round(mulliganSuccessCount / mulliganCount * 100)}% of mulligans` : 'n/a';
   document.getElementById('stats-display').innerHTML = `
@@ -51,9 +73,9 @@ function renderStats(poorCount, economyCount, limitedCount, mulliganCount, mulli
     ${renderSimLog(simLog)}`;
 }
 
+/** Renders the simulation log (first 100 entries) as a collapsible detail block. */
 function renderSimLog(simLog) {
   const sample = simLog.slice(0, 100);
-  const SETUP_TYPES = new Set(['Character', 'Location', 'Attachment']);
   const sep = `<span class="sim-sep">·</span>`;
 
   const renderCards = cards => cards.map(c =>
@@ -62,7 +84,7 @@ function renderSimLog(simLog) {
       : `<span class="sim-card-dim">${c.name}</span>`
   ).join(sep);
 
-  const rows = sample.map((sim, idx) => {
+  const rows = sample.map(sim => {
     const initialHtml  = renderCards(sim.initialHand);
     const mulliganHtml = sim.mulliganHand ? renderCards(sim.mulliganHand) : null;
 
@@ -113,6 +135,7 @@ function renderSimLog(simLog) {
     </details>`;
 }
 
+/** Trims leading/trailing zero buckets from a distribution and renders it as a histogram. */
 function trimAndRender(dist, title, labelFn) {
   const first   = dist.findIndex(v => v > 0);
   const last    = dist.length - 1 - [...dist].reverse().findIndex(v => v > 0);
@@ -120,6 +143,7 @@ function trimAndRender(dist, title, labelFn) {
   return renderHistogram(trimmed, title, i => labelFn(i + first));
 }
 
+/** Renders a 3-bar SVG chart for military/intrigue/power icon averages per setup. */
 function renderIconSpread(iconAvg, iconTotals, title) {
   const labels      = [getCSSIconChar('icon-military'), getCSSIconChar('icon-intrigue'), getCSSIconChar('icon-power')];
   const iconColors  = ['#d04040', '#40a848', '#4488c8'];
@@ -200,6 +224,7 @@ function renderIconSpread(iconAvg, iconTotals, title) {
   return s;
 }
 
+/** Renders a histogram SVG with count (left) and percentage (right) Y-axes. */
 function renderHistogram(dist, title, labelFn) {
   const maxVal = Math.max(...dist, 1);
   // Round yMax up to a clean multiple for neat tick spacing
@@ -301,8 +326,10 @@ function renderHistogram(dist, title, labelFn) {
 
 // ── Deck statistics charts ─────────────────────────────────────────────────
 
-// Read the actual unicode character from a CSS ::before content value.
-// This ensures SVG text labels stay in sync when CSS icon codes are changed.
+/**
+ * Reads the actual unicode character from a CSS ::before pseudo-element.
+ * This keeps SVG text labels in sync with icon font definitions in the CSS.
+ */
 function getCSSIconChar(className) {
   const el = document.createElement('span');
   el.className = className;
@@ -314,8 +341,10 @@ function getCSSIconChar(className) {
   return raw.replace(/^['"]|['"]$/g, '');
 }
 
-let _deckLineId = 0;
+/** Counter used to generate unique IDs for deck line chart SVG elements. */
+let deckLineIdCounter = 0;
 
+/** Toggles focus on series `idx` in a deck line chart; clicking the same series again clears focus. */
 function deckLineToggle(chartId, idx) {
   const svg = document.getElementById(chartId);
   if (!svg) return;
@@ -331,6 +360,7 @@ function deckLineToggle(chartId, idx) {
   });
 }
 
+/** Renders a bar chart SVG for deck statistics. */
 function renderDeckBar(values, labels, title, opts = {}) {
   const {
     barColors   = null,
@@ -425,11 +455,13 @@ function renderDeckBar(values, labels, title, opts = {}) {
   return s;
 }
 
+/**
+ * Renders a multi-line chart SVG for deck statistics.
+ * Each series has { name, color, values, xOffset } where values[i] is the count at x = xOffset + i.
+ */
 function renderDeckLines(series, title, opts = {}) {
-  // series: [{ name, color, values, xOffset }]
-  // values[i] is the count at x = xOffset + i
   const { yLabel = '# Cards' } = opts;
-  const chartId = `dl${++_deckLineId}`;
+  const chartId = `dl${++deckLineIdCounter}`;
 
   // Build the common x-axis from the union of all x-values in any series
   const allX = new Set();
@@ -542,24 +574,13 @@ function renderDeckLines(series, title, opts = {}) {
   return s;
 }
 
+/** Renders all deck statistics charts and returns the combined HTML string. */
 function renderDeckCharts(slots, cardMap) {
-  const FACTION_ICONS = {
-    stark:          '\ue608',
-    lannister:      '\ue603',
-    targaryen:      '\ue609',
-    baratheon:      '\ue600',
-    greyjoy:        '\ue601',
-    tyrell:         '\ue60a',
-    thenightswatch: '\ue606',
-    martell:        '\ue604',
-    neutral:        '\ue612',
-  };
-
   const allEntries = Object.entries(slots)
     .map(([code, qty]) => ({ card: cardMap[code], qty }))
     .filter(({ card }) => card);
 
-  const deckCards = allEntries.filter(({ card }) => !['Plot', 'Agenda'].includes(card.type_name));
+  const deckCards = allEntries.filter(({ card }) => !NON_DECK_TYPES.has(card.type_name));
   const plots     = allEntries.filter(({ card }) => card.type_name === 'Plot');
   const chars     = deckCards.filter(({ card }) => card.type_name === 'Character');
   const locs      = deckCards.filter(({ card }) => card.type_name === 'Location');
@@ -572,8 +593,7 @@ function renderDeckCharts(slots, cardMap) {
     const f = card.faction_code || 'neutral';
     factionMap[f] = (factionMap[f] || 0) + qty;
   }
-  const factionOrder = ['stark','lannister','targaryen','baratheon','greyjoy','tyrell','thenightswatch','martell','neutral'];
-  const factionPresent = factionOrder.filter(f => factionMap[f]);
+  const factionPresent = FACTION_ORDER.filter(f => factionMap[f]);
   const factionChart = renderDeckBar(
     factionPresent.map(f => factionMap[f]),
     factionPresent.map(f => FACTION_ICONS[f] || f),
@@ -668,11 +688,6 @@ function renderDeckCharts(slots, cardMap) {
     { name: 'Claim',      color: '#c05030', values: plotClaimData.values, xOffset: plotClaimData.xOffset },
     { name: 'Reserve',    color: '#6090c0', values: plotResvData.values,  xOffset: plotResvData.xOffset  },
   ], 'Plot Statistics', { yLabel: '# Plots' });
-
-  const bar = (data, title, opts = {}) =>
-    data.values.length
-      ? renderDeckBar(data.values, data.labels, title, opts)
-      : `<p class="chart-no-data">No data</p>`;
 
   const row = (...cells) => `<div class="deck-chart-grid">${cells.map(c => `<div class="deck-chart-cell">${c}</div>`).join('')}</div>`;
 

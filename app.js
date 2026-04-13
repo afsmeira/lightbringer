@@ -1,12 +1,13 @@
-// ── Utilities ────────────────────────────────────────────────────────────
+// ── Utilities ─────────────────────────────────────────────────────────────
 
-
+/** Sets the text and CSS class of the status element. */
 function setStatus(msg, type = '') {
   const el = document.getElementById('status');
   el.textContent = msg;
   el.className = type;
 }
 
+/** Parses a ThronesDB deck ID from a full URL or a bare numeric string. Returns null if unrecognised. */
 function parseDeckId(raw) {
   raw = raw.trim();
   const match = raw.match(/thronesdb\.com\/decklist\/view\/(\d+)/);
@@ -15,12 +16,17 @@ function parseDeckId(raw) {
   return null;
 }
 
+/** Fetches a URL and returns the parsed JSON; throws on non-2xx status. */
 async function fetchJson(url) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`HTTP ${res.status} from ${url}`);
   return res.json();
 }
 
+/**
+ * Fetches all cards from the ThronesDB API and caches the result.
+ * Augments each card with derived fields: is_limited, income_modifier, bestow, shadow, no_attachments.
+ */
 async function getAllCards() {
   if (cachedCards) return cachedCards;
   const cards = await fetchJson(CARDS_API);
@@ -50,15 +56,12 @@ async function getAllCards() {
   return cachedCards;
 }
 
-function parseCardSet(textareaId) {
-  const raw = document.getElementById(textareaId).value;
-  return new Set(raw.split(/[\n,]+/).map(s => s.trim().toLowerCase()).filter(Boolean));
-}
-
+/** Returns true if `card` appears in `set` by name or code (case-insensitive). */
 function cardInSet(card, set) {
   return set.has(card.name.toLowerCase()) || set.has(card.code.toLowerCase());
 }
 
+/** Reads the current setup-quality configuration from the UI checkboxes. */
 function getConfig() {
   return {
     requireTwoChars:    document.getElementById('cfg-two-chars').checked,
@@ -70,6 +73,7 @@ function getConfig() {
   };
 }
 
+/** Returns true if the setup fails any configured requirement. Poor setups trigger a mulligan. */
 function isPoorSetup(cards) {
   const cfg = getConfig();
   if (cards.length < cfg.minCards) return true;
@@ -94,6 +98,7 @@ function isPoorSetup(cards) {
   return false;
 }
 
+/** Returns the set of card codes currently checked as key cards in the deck table. */
 function getKeySet() {
   return new Set(
     [...document.querySelectorAll('#deck-table-section .key-cb:checked')]
@@ -101,6 +106,7 @@ function getKeySet() {
   );
 }
 
+/** Returns the set of card codes currently checked as avoidable in the deck table. */
 function getAvoidSet() {
   return new Set(
     [...document.querySelectorAll('#deck-table-section .avoidable-cb:checked')]
@@ -108,6 +114,7 @@ function getAvoidSet() {
   );
 }
 
+/** Returns the set of card codes currently checked as restricted in the deck table. */
 function getRestrictedSet() {
   return new Set(
     [...document.querySelectorAll('#deck-table-section .restricted-cb:checked')]
@@ -115,6 +122,7 @@ function getRestrictedSet() {
   );
 }
 
+/** Updates the is_economy flag on all cached cards based on deck table Economy checkboxes. */
 function updateEconomyFlags() {
   if (!cachedCards) return;
   const economyCodes = new Set(
@@ -128,6 +136,18 @@ function updateEconomyFlags() {
 
 // ── Analyze ───────────────────────────────────────────────────────────────
 
+/** Clears the deck table content and hides all deck-related panels. */
+function clearDeckUI() {
+  document.getElementById('deck-table-section').innerHTML = '';
+  document.getElementById('deck-table-details').style.display = '';
+  document.getElementById('config-details').style.display = '';
+  document.getElementById('sort-details').style.display = '';
+  document.getElementById('deck-stats-details').style.display = '';
+  document.getElementById('analyze-btn-wrapper').style.display = '';
+  document.getElementById('deck-title').style.display = '';
+}
+
+/** Fetches the deck and card data then runs the setup simulation. */
 async function analyze() {
   const btn = document.getElementById('analyze-btn');
   const urlInput = document.getElementById('deck-url').value;
@@ -138,7 +158,7 @@ async function analyze() {
     return;
   }
 
-  document.getElementById('stats-display').innerHTML = '<div class="sim-loading"><div class="sim-loading-spinner"></div><div class="sim-loading-text">Fetching decklist…</div></div>';
+  renderLoadingState('Fetching decklist…');
   document.getElementById('setup-section').style.display = 'block';
   btn.disabled = true;
   setDeckLoadLocked(true);
@@ -162,26 +182,24 @@ async function analyze() {
   }
 }
 
-// ── Setup Simulator ───────────────────────────────────────────────────────
-
-
-
-
 let deckLoadLocked = false;
 document.getElementById('deck-url').addEventListener('keydown', e => {
   if (e.key === 'Enter' && !deckLoadLocked) fetchAndRenderDeckTable();
 });
 
+/** Locks or unlocks the deck load button and tracks the locked state. */
 function setDeckLoadLocked(locked) {
   deckLoadLocked = locked;
   document.getElementById('load-deck-btn').disabled = locked;
 }
 
+/** Returns the card code of the currently selected Red Door location, or null. */
 function getRedDoorLocationCode() {
   const cb = document.querySelector('#deck-table-section .red-door-cb:checked');
   return cb ? cb.closest('tr').dataset.code : null;
 }
 
+/** Updates the Analyze button's disabled state based on Red Door selection requirements. */
 function updateAnalyzeButton() {
   const btn = document.getElementById('analyze-btn');
   const msg = document.getElementById('red-door-msg');
@@ -190,39 +208,15 @@ function updateAnalyzeButton() {
   msg.style.display = needsSelection ? 'block' : 'none';
 }
 
-const FACTION_COLORS = {
-  stark:         '#cfcfcf',
-  lannister:     '#c00106',
-  targaryen:     '#9c6b9e',
-  baratheon:     '#e3d852',
-  greyjoy:       '#1d7a99',
-  tyrell:        '#509f16',
-  thenightswatch:'#7a7a7a',
-  martell:       '#e89521',
-  neutral:       '#a99560',
-};
-
-const FACTION_NAMES = {
-  stark:          "House Stark",
-  lannister:      "House Lannister",
-  targaryen:      "House Targaryen",
-  baratheon:      "House Baratheon",
-  greyjoy:        "House Greyjoy",
-  tyrell:         "House Tyrell",
-  thenightswatch: "The Night's Watch",
-  martell:        "House Martell",
-  neutral:        "Neutral",
-};
-
+/** Fetches a deck by URL/ID, renders the deck table, configuration panels, and deck charts. */
 async function fetchAndRenderDeckTable() {
   document.getElementById('setup-section').style.display = 'none';
   const urlInput = document.getElementById('deck-url').value;
-  const deckId = parseDeckId(urlInput);
+  const deckId   = parseDeckId(urlInput);
   const section  = document.getElementById('deck-table-section');
   const details  = document.getElementById('deck-table-details');
-  const btn = document.getElementById('analyze-btn');
   const btnWrapper = document.getElementById('analyze-btn-wrapper');
-  if (!deckId) { section.innerHTML = ''; details.style.display = ''; document.getElementById('config-details').style.display = ''; document.getElementById('sort-details').style.display = ''; document.getElementById('deck-stats-details').style.display = ''; btnWrapper.style.display = ''; document.getElementById('deck-title').style.display = ''; setStatus(''); return; }
+  if (!deckId) { clearDeckUI(); setStatus(''); return; }
 
   setStatus('Loading deck data…', 'loading');
   try {
@@ -238,15 +232,14 @@ async function fetchAndRenderDeckTable() {
       .map(([code, qty]) => ({ card: cardMap[code], qty }))
       .filter(({ card }) => card && !NON_DECK_TYPES.has(card.type_name))
       .sort((a, b) => {
-        const typeOrder = { Character: 0, Attachment: 1, Location: 2, Event: 3 };
-        const ta = typeOrder[a.card.type_name] ?? 4;
-        const tb = typeOrder[b.card.type_name] ?? 4;
+        const ta = CARD_TYPE_ORDER[a.card.type_name] ?? 4;
+        const tb = CARD_TYPE_ORDER[b.card.type_name] ?? 4;
         return ta !== tb ? ta - tb : a.card.name.localeCompare(b.card.name);
       });
 
-    if (rows.length === 0) { section.innerHTML = ''; details.style.display = ''; document.getElementById('config-details').style.display = ''; document.getElementById('sort-details').style.display = ''; document.getElementById('deck-stats-details').style.display = ''; btnWrapper.style.display = ''; document.getElementById('deck-title').style.display = ''; return; }
+    if (rows.length === 0) { clearDeckUI(); return; }
 
-    const knownEconomyIds    = new Set([...knowEconomyCards].map(e => e.id));
+    const knownEconomyIds    = new Set([...knownEconomyCards].map(e => e.id));
     const knownAvoidableIds  = new Set([...knownAvoidableCards].map(e => e.id));
     const knownRestrictedIds = new Set([...knownRestrictedCards].map(e => e.id));
     const opponentRestrictedIds = new Set(
@@ -360,23 +353,18 @@ async function fetchAndRenderDeckTable() {
     updateAnalyzeButton();
   } catch (err) {
     setStatus(`Error: ${err.message}`, 'error');
-    section.innerHTML = '';
-    details.style.display = '';
-    document.getElementById('config-details').style.display = '';
-    document.getElementById('sort-details').style.display = '';
-    document.getElementById('deck-stats-details').style.display = '';
-    btnWrapper.style.display = '';
-    document.getElementById('deck-title').style.display = '';
+    clearDeckUI();
   }
 }
 
 
-// Card image tooltip
+// ── Card image tooltip ─────────────────────────────────────────────────────
+// Follows the cursor and shows the card art when hovering a card name cell.
 {
   const tooltip    = document.getElementById('card-image-tooltip');
   const skeleton   = tooltip.querySelector('.card-img-skeleton');
   const tooltipImg = tooltip.querySelector('img');
-  const MARGIN = 12;
+  const TOOLTIP_MARGIN = 12;
 
   function showSkeleton() {
     skeleton.style.display = 'block';
@@ -405,10 +393,10 @@ async function fetchAndRenderDeckTable() {
     const th = tooltip.offsetHeight;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    let x = e.clientX + MARGIN;
-    let y = e.clientY + MARGIN;
-    if (x + tw > vw) x = e.clientX - tw - MARGIN;
-    if (y + th > vh) y = e.clientY - th - MARGIN;
+    let x = e.clientX + TOOLTIP_MARGIN;
+    let y = e.clientY + TOOLTIP_MARGIN;
+    if (x + tw > vw) x = e.clientX - tw - TOOLTIP_MARGIN;
+    if (y + th > vh) y = e.clientY - th - TOOLTIP_MARGIN;
     tooltip.style.left = x + 'px';
     tooltip.style.top  = y + 'px';
   });

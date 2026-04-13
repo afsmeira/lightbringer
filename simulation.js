@@ -1,5 +1,8 @@
-const NON_DECK_TYPES = new Set(['Agenda', 'Plot']);
-
+/**
+ * Builds the ordered card pool for simulation from the deck's slot map.
+ * Removes exactly one copy of the Red Door location when the agenda is active,
+ * since it is placed behind the door before setup begins.
+ */
 function buildDeckPool(slots, cardMap, redDoorCode) {
   const pool = [];
   let redDoorRemoved = false;
@@ -19,8 +22,8 @@ function buildDeckPool(slots, cardMap, redDoorCode) {
   return pool;
 }
 
+/** Draws n cards from pool using a Fisher-Yates partial shuffle. */
 function drawHand(pool, n) {
-  // Fisher-Yates partial shuffle
   const arr = pool.slice();
   const draw = [];
   for (let i = 0; i < n && i < arr.length; i++) {
@@ -31,26 +34,35 @@ function drawHand(pool, n) {
   return draw;
 }
 
+/** Returns the numeric cost of a card, or null if unparseable (e.g. "-"). */
 function cardCost(card) {
   const n = parseInt(card.cost);
   return isNaN(n) ? null : n;
 }
 
+/** Gold cost to place a card into shadows during setup. */
 const SHADOW_COST = 2;
 
-// IDs of attachments that attach to locations rather than characters.
+/** IDs of attachments that target locations rather than characters. */
 const locationAttachmentIds = new Set(
   [...attachmentWithRestrictions].filter(r => r.location === true).map(r => r.id)
 );
 
-// Parse "Lord. Lady. Spy." → Set(["lord", "lady", "spy"])
+/** Map from card code to its attachment restriction object. */
+const restrictionsByCode = new Map(
+  [...attachmentWithRestrictions].map(r => [r.id, r])
+);
+
+/** Parses "Lord. Lady. Spy." into Set(["lord", "lady", "spy"]). */
 function cardTraits(card) {
   if (!card.traits) return new Set();
   return new Set(card.traits.split('.').map(t => t.trim().toLowerCase()).filter(Boolean));
 }
 
-// Returns true if `character` can accept an attachment with the given trait set.
-// Handles "No attachments." and "No attachments except [Trait]." card text.
+/**
+ * Returns true if `character` can receive an attachment with the given traits.
+ * Handles "No attachments." and "No attachments except [Trait]." card text.
+ */
 function characterAcceptsAttachment(character, attachTraits) {
   const r = character.no_attachments;
   if (!r) return true;
@@ -58,13 +70,10 @@ function characterAcceptsAttachment(character, attachTraits) {
   return r.except.some(t => attachTraits.has(t));
 }
 
-// Map from card code to its restriction object (last entry wins on duplicate codes).
-const restrictionsByCode = new Map(
-  [...attachmentWithRestrictions].map(r => [r.id, r])
-);
-
-// Returns true if `attachment` has at least one valid target among `candidates`.
-// candidates: non-shadow characters (or locations) from the current combo.
+/**
+ * Returns true if `attachment` has at least one valid target among `candidates`.
+ * `candidates` are the non-shadow characters (or locations) in the current setup combo.
+ */
 function attachmentHasValidTarget(attachment, candidates) {
   const restriction = restrictionsByCode.get(attachment.code);
   if (!restriction || !restriction.predicate) return candidates.length > 0;
@@ -133,6 +142,11 @@ function attachmentHasValidTarget(attachment, candidates) {
   });
 }
 
+/**
+ * Returns all valid setup combinations for the given hand.
+ * Events are only eligible if they have Shadow (they always go into shadows).
+ * Cards with cost "-" always go into shadows at SHADOW_COST.
+ */
 function allValidSetups(hand, redDoorCode) {
   // Only consider cards that can be set up.
   // Events are only eligible if they have shadow (always go into shadows).
@@ -155,55 +169,48 @@ function allValidSetups(hand, redDoorCode) {
       if (mask & (1 << i)) combo.push(eligible[i]);
     }
 
-    // Shadow cards are always placed into shadows.
-    {
+    // Unique cards: first copy costs full price; extra copies are free duplicates.
+    // Non-unique cards always pay full price.
+    // Pre-seed with the Red Door location so any copy in hand is always a duplicate.
+    const uniqueSeen = new Set(redDoorCode ? [redDoorCode] : []);
+    let total = 0;
+    let cardsWithDetails = combo.map((card) => {
+      const inShadow = !!card.shadow;
+      if (card.is_unique && uniqueSeen.has(card.code)) {
+        // Shadow duplicates are excluded: bringing them out of shadows costs full price,
+        // which defeats the purpose of treating them as free duplicates.
+        if (inShadow) return null;
+        return { ...card, isDuplicate: true, effectiveCost: 0, inShadow };
+      }
+      if (card.is_unique) uniqueSeen.add(card.code);
+      const cost = inShadow ? SHADOW_COST : card._cost;
+      total += cost;
+      return { ...card, isDuplicate: false, effectiveCost: cost, inShadow };
+    }).filter(c => c !== null);
 
-      // Unique cards: first copy costs full price, extra copies are duplicates (free)
-      // Non-unique cards: each copy always costs its full price
-      // Pre-seed with the Red Door location so any copy in hand is always a duplicate.
-      const uniqueSeen = new Set(redDoorCode ? [redDoorCode] : []);
-      let total = 0;
-      let cardsWithDetails = combo.map((card) => {
-        const inShadow = !!card.shadow;
-        if (card.is_unique && uniqueSeen.has(card.code)) {
-          // We're assuming shadow cards are always placed in shadows.
-          // So duplicates of shadow cards would also be placed in shadows.
-          // But that makes no sense since to get them out of shadows you would pay full price for a duplicate.
-          if (inShadow) return null;
-          return { ...card, isDuplicate: true, effectiveCost: 0, inShadow };
-        }
-        if (card.is_unique) uniqueSeen.add(card.code);
-        const cost = inShadow ? SHADOW_COST : card._cost;
-        total += cost;
-        return { ...card, isDuplicate: false, effectiveCost: cost, inShadow };
-      }).filter(c => c !== null);
-
-      // Non-shadow attachments need a valid target in the setup.
-      // Location-attachments need a non-shadow location; others need a non-shadow character.
-      // Additionally, if the attachment is in attachmentWithRestrictions, the target must
-      // satisfy the predicate. An attachment without a valid target is excluded from the
-      // combo (it simply can't be set up), not the whole combo rejected.
-      cardsWithDetails = cardsWithDetails.filter(c => {
-        if (c.type_name !== 'Attachment' || c.inShadow) return true;
-        const isLocAttach = locationAttachmentIds.has(c.code);
-        const attachTraits = isLocAttach ? null : cardTraits(c);
-        const candidates = cardsWithDetails.filter(t => {
-          if (t.inShadow) return false;
-          if (isLocAttach) return t.type_name === 'Location';
-          return t.type_name === 'Character' && characterAcceptsAttachment(t, attachTraits);
-        });
-        return attachmentHasValidTarget(c, candidates);
+    // Non-shadow attachments need a valid target in the combo.
+    // Location-attachments need a non-shadow location; others need a non-shadow character.
+    // An attachment without a valid target is dropped from the combo, not the whole combo.
+    cardsWithDetails = cardsWithDetails.filter(c => {
+      if (c.type_name !== 'Attachment' || c.inShadow) return true;
+      const isLocAttach = locationAttachmentIds.has(c.code);
+      const attachTraits = isLocAttach ? null : cardTraits(c);
+      const candidates = cardsWithDetails.filter(t => {
+        if (t.inShadow) return false;
+        if (isLocAttach) return t.type_name === 'Location';
+        return t.type_name === 'Character' && characterAcceptsAttachment(t, attachTraits);
       });
-      if (cardsWithDetails.length === 0) continue;
-      total = cardsWithDetails.reduce((sum, c) => sum + c.effectiveCost, 0);
+      return attachmentHasValidTarget(c, candidates);
+    });
+    if (cardsWithDetails.length === 0) continue;
+    total = cardsWithDetails.reduce((sum, c) => sum + c.effectiveCost, 0);
 
-      const limitedCount = cardsWithDetails.filter(c => c.is_limited).length;
-      if (total <= effectiveGold && limitedCount <= 1) {
-        const key = cardsWithDetails.map(c => `${c.code}:${c.inShadow ? 's' : 'n'}`).sort().join('|');
-        if (!seen.has(key)) {
-          seen.add(key);
-          results.push({ cards: cardsWithDetails, total });
-        }
+    const limitedCount = cardsWithDetails.filter(c => c.is_limited).length;
+    if (total <= effectiveGold && limitedCount <= 1) {
+      const key = cardsWithDetails.map(c => `${c.code}:${c.inShadow ? 's' : 'n'}`).sort().join('|');
+      if (!seen.has(key)) {
+        seen.add(key);
+        results.push({ cards: cardsWithDetails, total });
       }
     }
   }
@@ -301,6 +308,7 @@ const SORT_CRITERIA = [
 
 let sortCriteriaOrder = SORT_CRITERIA.map((_, i) => i);
 
+/** Renders the draggable sort-criteria list and wires up drag-and-drop reordering. */
 function renderSortCriteria() {
   const list = document.getElementById('sort-criteria-list');
   if (!list) return;
@@ -347,6 +355,7 @@ function renderSortCriteria() {
   });
 }
 
+/** Sorts setups by the current criteria order; first differentiating criterion wins. */
 function sortSetups(setups) {
   return setups.slice().sort((a, b) => {
     for (const idx of sortCriteriaOrder) {
@@ -359,12 +368,13 @@ function sortSetups(setups) {
 
 const SIM_COUNT = 5000;
 
+/** Runs SIM_COUNT simulations against the current deck and renders the results. */
 function runSimulations() {
   if (!currentSlots || !currentCardMap) return;
 
   const btn = document.getElementById('analyze-btn');
   btn.disabled = true;
-  document.getElementById('stats-display').innerHTML = '<div class="sim-loading"><div class="sim-loading-spinner"></div><div class="sim-loading-text">Running simulations…</div></div>';
+  renderLoadingState('Running simulations…');
 
   // Defer to next frame so the browser can repaint before the heavy loop
   setTimeout(() => {
@@ -402,8 +412,6 @@ function runSimulations() {
         best   = sorted.length > 0 ? sorted[0] : null;
         if (best && !isPoorSetup(best.cards)) mulliganSuccessCount++;
       }
-
-      const hand = mulliganHand ?? initialHand;
 
       if (!best) {
         poorCount++;
@@ -458,7 +466,15 @@ function runSimulations() {
     const iconStrengthAvg = iconStrengthTotals.map(t => iconSetupCount > 0 ? t / iconSetupCount : 0);
     const avgGold  = (totalGold  / SIM_COUNT).toFixed(2);
     const avgCards = (totalCards / SIM_COUNT).toFixed(2);
-    renderStats(poorCount, economyCount, limitedCount, mulliganCount, mulliganSuccessCount, avgGold, avgCards, goldDist, cardsDist, charsDist, strengthDist, keyCardsDist, avoidableDist, shadowDist, iconAvg, iconTotals, iconStrengthAvg, iconStrengthTotals, simLog);
+    renderStats({
+      poorCount, economyCount, limitedCount,
+      mulliganCount, mulliganSuccessCount,
+      avgGold, avgCards,
+      goldDist, cardsDist, charsDist, strengthDist,
+      keyCardsDist, avoidableDist, shadowDist,
+      iconAvg, iconTotals, iconStrengthAvg, iconStrengthTotals,
+      simLog,
+    });
 
     document.getElementById('setup-section').scrollIntoView({ behavior: 'smooth' });
     btn.disabled = false;
