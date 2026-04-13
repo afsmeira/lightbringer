@@ -35,7 +35,7 @@
   </div>
 
   <div class="panel" id="deck-input-panel">
-    <label for="deck-url" class="panel-label">Deck</label>
+    <div class="panel-title">Deck</div>
     <div class="input-row">
       <input
         type="text"
@@ -59,8 +59,8 @@
     <details id="config-details" open>
       <summary class="panel-summary">Configuration</summary>
       <div id="config-details-body" class="details-body">
+        <p class="section-desc">A setup is considered poor if:</p>
         <div class="config-controls">
-          <label>A setup is considered poor if:</label>
           <label class="cfg-check">
             <input type="checkbox" id="cfg-two-chars" checked>
             It has fewer than 2 characters
@@ -94,7 +94,7 @@
     <details id="sort-details" open>
       <summary class="panel-summary">Setup Ranking Criteria</summary>
       <div class="details-body">
-        <p class="sort-desc">All possible setups for a given starting hand are ranked according to these criteria, applied top to bottom — the first differentiating criterion wins. All criteria include cards placed in shadows. Drag to re-order.</p>
+        <p class="section-desc">All possible setups for a given starting hand are ranked according to these criteria, applied top to bottom — the first differentiating criterion wins. All criteria include cards placed in shadows. Drag to re-order.</p>
         <ol id="sort-criteria-list"></ol>
       </div>
     </details>
@@ -116,12 +116,8 @@
 
   <div id="setup-section">
     <div class="panel">
-      <div class="panel-header">
-        <div>
-          <div class="panel-title">Setup Simulation Results</div>
-          <div class="panel-subtitle">Results across 5000 simulated hands</div>
-        </div>
-      </div>
+      <div class="panel-title">Setup Simulation Results</div>
+      <p class="section-desc">Results across 5000 simulated hands</p>
 
       <div id="stats-display"></div>
     </div>

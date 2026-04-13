@@ -105,24 +105,20 @@ function renderSimLog(simLog) {
       ? `Chosen Setup <span class="sim-setup-total">(${sim.total}g)</span>`
       : `Chosen Setup`;
 
-    const badges = sim.poor ? `
-        <div class="sim-row-badges">
-          <span class="sim-row-label">Labels</span>
-          <span class="sim-badge poor" title="This setup is considered to be poor according to configuration">poor</span>
-        </div>` : '';
+    const badges = sim.poor ? `<span class="sim-row-label sim-badge poor" title="This setup is considered to be poor according to configuration">poor</span>` : '';
 
     return `
       <div class="sim-row">
         <div class="sim-hand"><span class="sim-row-label">Initial Draw</span>${initialHtml}</div>
         ${mulliganHtml ? `<div class="sim-hand"><span class="sim-row-label">Mulligan Draw</span>${mulliganHtml}</div>` : ''}
-        <div class="sim-setup"><span class="sim-row-label">${setupLabel}</span>${setupHtml}</div>
-        ${badges}
+        <div class="sim-setup"><span class="sim-row-label">${setupLabel}</span>${badges}${setupHtml}</div>
       </div>`;
   }).join('');
 
   return `
-    <details class="sim-log-details">
-      <summary>Simulation Log (sample of ${sample.length} from ${simLog.length})</summary>
+    <details>
+      <summary class="panel-summary">Simulation Log</summary>
+      <p class="section-desc">Sample of ${sample.length} setups from ${simLog.length} simulations.</p>
       <div class="sim-log-key">
         <span class="sim-card-limited">&#9632; Limited</span>
         <span class="sim-card-key">&#9632; Key card</span>
