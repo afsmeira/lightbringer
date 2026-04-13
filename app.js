@@ -147,39 +147,11 @@ function clearDeckUI() {
   document.getElementById('deck-title').style.display = '';
 }
 
-/** Fetches the deck and card data then runs the setup simulation. */
-async function analyze() {
-  const btn = document.getElementById('analyze-btn');
-  const urlInput = document.getElementById('deck-url').value;
-
-  const deckId = parseDeckId(urlInput);
-  if (!deckId) {
-    setStatus('Please enter a valid ThronesDB deck URL or deck ID.', 'error');
-    return;
-  }
-
-  renderLoadingState('Fetching decklist…');
+/** Runs the setup simulation against the already-loaded deck. */
+function analyze() {
   document.getElementById('setup-section').style.display = 'block';
-  btn.disabled = true;
-  setDeckLoadLocked(true);
-  try {
-    const [decklist, cardMap] = await Promise.all([
-      fetchJson(DECKLIST_API(deckId)),
-      getAllCards(),
-    ]);
-
-    currentSlots   = decklist.slots || {};
-    currentCardMap = cardMap;
-
-    updateEconomyFlags();
-    runSimulations();
-  } catch (err) {
-    setStatus(`Error: ${err.message}`, 'error');
-    console.error(err);
-    document.getElementById('setup-section').style.display = 'none';
-    btn.disabled = false;
-    setDeckLoadLocked(false);
-  }
+  updateEconomyFlags();
+  runSimulations();
 }
 
 let deckLoadLocked = false;
@@ -227,6 +199,8 @@ async function fetchAndRenderDeckTable() {
 
     const slots = decklist.slots || {};
     hasRedDoor = Object.keys(slots).includes('08039');
+    currentSlots   = slots;
+    currentCardMap = cardMap;
 
     const rows = Object.entries(slots)
       .map(([code, qty]) => ({ card: cardMap[code], qty }))

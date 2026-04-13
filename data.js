@@ -74,6 +74,7 @@ let currentCardMap = null;
 /** True when the active deck contains agenda 08039 (The House With the Red Door). */
 let hasRedDoor     = false;
 
+
 // ── Known card sets ────────────────────────────────────────────────────────
 
 /** Cards that provide economy benefits but aren't limited or don't provide income. */
