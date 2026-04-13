@@ -23,15 +23,15 @@ const FACTION_ORDER = [
 
 /** CSS color for each faction, used for icons and labels. */
 const FACTION_COLORS = {
-  stark:          '#cfcfcf',
+  stark:          '#888888',
   lannister:      '#c00106',
-  targaryen:      '#9c6b9e',
-  baratheon:      '#e3d852',
+  targaryen:      '#000000',
+  baratheon:      '#a89400',
   greyjoy:        '#1d7a99',
   tyrell:         '#509f16',
   thenightswatch: '#7a7a7a',
   martell:        '#e89521',
-  neutral:        '#a99560',
+  neutral:        '#8a7a50',
 };
 
 /** Human-readable name for each faction. */

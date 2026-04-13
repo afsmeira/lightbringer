@@ -271,7 +271,7 @@ async function fetchAndRenderDeckTable() {
         : '';
       lastType = card.type_name;
       return `${separator}<tr data-code="${card.code}"${isDisabled ? ' class="deck-table-disabled"' : ''}>
-        <td class="deck-table-card-name" data-img="${card.image_url || ''}"><span class="card-type-icon icon-${card.type_name.toLowerCase()}" style="color:${FACTION_COLORS[card.faction_code] || '#6a5030'}"></span>${name}</td>
+        <td class="deck-table-card-name" data-img="${card.image_url || ''}"><span class="card-type-icon icon-${card.type_name.toLowerCase()}" style="color:${FACTION_COLORS[card.faction_code] || '#93a1a1'}"></span>${name}</td>
         <td>${cb(isEconomy, isDisabled).replace('<input', '<input class="economy-cb"')}</td>
         <td>${cb(false, isDisabled).replace('<input', '<input class="key-cb"')}</td>
         <td>${cb(isAvoidable, isDisabled).replace('<input', '<input class="avoidable-cb"')}</td>
@@ -280,7 +280,7 @@ async function fetchAndRenderDeckTable() {
       </tr>`;
     }).join('');
 
-    const factionColor = FACTION_COLORS[decklist.faction_code] || '#6a5030';
+    const factionColor = FACTION_COLORS[decklist.faction_code] || '#93a1a1';
     const factionName  = FACTION_NAMES[decklist.faction_code] || decklist.faction_code;
     const agendaNames  = Object.entries(slots)
       .filter(([code]) => cardMap[code]?.type_name === 'Agenda')

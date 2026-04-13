@@ -146,7 +146,7 @@ function trimAndRender(dist, title, labelFn) {
 /** Renders a 3-bar SVG chart for military/intrigue/power icon averages per setup. */
 function renderIconSpread(iconAvg, iconTotals, title) {
   const labels      = [getCSSIconChar('icon-military'), getCSSIconChar('icon-intrigue'), getCSSIconChar('icon-power')];
-  const iconColors  = ['#d04040', '#40a848', '#4488c8'];
+  const iconColors  = ['#dc322f', '#859900', '#268bd2'];
   const maxVal  = Math.max(...iconAvg, 0.1);
   const yMax    = Math.ceil(maxVal / 0.5) * 0.5;
   const tickCount = Math.round(yMax / 0.5);
@@ -167,14 +167,14 @@ function renderIconSpread(iconAvg, iconTotals, title) {
 
   // Chart title
   s += `<text x="${(W / 2).toFixed(1)}" y="${mT - 16}"
-    text-anchor="middle" font-family="sans-serif" font-size="12" fill="#a89060"
+    text-anchor="middle" font-family="sans-serif" font-size="12" fill="#839496"
     letter-spacing="0.05em">${title}</text>`;
 
   // Horizontal grid lines
   for (const t of ticks) {
     const cy = yPos(t);
     s += `<line x1="${mL}" y1="${cy.toFixed(1)}" x2="${W - mR}" y2="${cy.toFixed(1)}"
-      stroke="#2a1c08" stroke-width="1"/>`;
+      stroke="#d6cfbe" stroke-width="1"/>`;
   }
 
   // Bars
@@ -190,13 +190,13 @@ function renderIconSpread(iconAvg, iconTotals, title) {
       <title>Total: ${iconTotals[i]}</title>
     </rect>`;
     s += `<text x="${(bx + bw / 2).toFixed(1)}" y="${(by - 5).toFixed(1)}"
-      text-anchor="middle" font-family="sans-serif" font-size="10" fill="#a89060"
+      text-anchor="middle" font-family="sans-serif" font-size="10" fill="#839496"
       pointer-events="none">${v.toFixed(2)}</text>`;
   }
 
   // Axes
-  s += `<line x1="${mL}" y1="${mT}" x2="${mL}" y2="${mT + iH}" stroke="#4a3510" stroke-width="1"/>`;
-  s += `<line x1="${mL}" y1="${mT + iH}" x2="${W - mR}" y2="${mT + iH}" stroke="#4a3510" stroke-width="1"/>`;
+  s += `<line x1="${mL}" y1="${mT}" x2="${mL}" y2="${mT + iH}" stroke="#93a1a1" stroke-width="1"/>`;
+  s += `<line x1="${mL}" y1="${mT + iH}" x2="${W - mR}" y2="${mT + iH}" stroke="#93a1a1" stroke-width="1"/>`;
 
   // X-axis labels
   for (let i = 0; i < 3; i++) {
@@ -210,13 +210,13 @@ function renderIconSpread(iconAvg, iconTotals, title) {
   for (const t of ticks) {
     const cy = yPos(t).toFixed(1);
     s += `<text x="${mL - 7}" y="${+cy + 4}"
-      text-anchor="end" font-family="sans-serif" font-size="10" fill="#6a5030"
+      text-anchor="end" font-family="sans-serif" font-size="10" fill="#93a1a1"
       >${t.toFixed(1)}</text>`;
   }
 
   // Axis title
   s += `<text x="${mL - 36}" y="${(mT + iH / 2).toFixed(1)}"
-    text-anchor="middle" font-family="sans-serif" font-size="10" fill="#6a5030"
+    text-anchor="middle" font-family="sans-serif" font-size="10" fill="#93a1a1"
     transform="rotate(-90,${mL - 36},${(mT + iH / 2).toFixed(1)})"
     >avg / setup</text>`;
 
@@ -249,14 +249,14 @@ function renderHistogram(dist, title, labelFn) {
 
   // Chart title
   s += `<text x="${(W / 2).toFixed(1)}" y="${mT - 16}"
-    text-anchor="middle" font-family="sans-serif" font-size="12" fill="#a89060"
+    text-anchor="middle" font-family="sans-serif" font-size="12" fill="#839496"
     letter-spacing="0.05em">${title}</text>`;
 
   // Horizontal grid lines
   for (const t of ticks) {
     const cy = yPos(t);
     s += `<line x1="${mL}" y1="${cy}" x2="${W - mR}" y2="${cy}"
-      stroke="#2a1c08" stroke-width="1"/>`;
+      stroke="#d6cfbe" stroke-width="1"/>`;
   }
 
   // Bars
@@ -269,27 +269,27 @@ function renderHistogram(dist, title, labelFn) {
     const pct = Math.round(v / SIM_COUNT * 100);
     s += `<rect x="${bx.toFixed(1)}" y="${by.toFixed(1)}"
       width="${bw.toFixed(1)}" height="${bh.toFixed(1)}"
-      fill="${v > 0 ? '#c9952a' : '#2a1c08'}" rx="2" class="chart-bar">
+      fill="${v > 0 ? '#b58900' : '#d6cfbe'}" rx="2" class="chart-bar">
       ${v > 0 ? `<title>${pct}%</title>` : ''}
     </rect>`;
     if (v > 0) {
       s += `<text x="${(bx + bw / 2).toFixed(1)}" y="${(by - 5).toFixed(1)}"
-        text-anchor="middle" font-family="sans-serif" font-size="10" fill="#a89060"
+        text-anchor="middle" font-family="sans-serif" font-size="10" fill="#839496"
         pointer-events="none">${v}</text>`;
     }
   }
 
   // Axes
-  s += `<line x1="${mL}" y1="${mT}" x2="${mL}" y2="${mT + iH}" stroke="#4a3510" stroke-width="1"/>`;
-  s += `<line x1="${W - mR}" y1="${mT}" x2="${W - mR}" y2="${mT + iH}" stroke="#4a3510" stroke-width="1"/>`;
-  s += `<line x1="${mL}" y1="${mT + iH}" x2="${W - mR}" y2="${mT + iH}" stroke="#4a3510" stroke-width="1"/>`;
+  s += `<line x1="${mL}" y1="${mT}" x2="${mL}" y2="${mT + iH}" stroke="#93a1a1" stroke-width="1"/>`;
+  s += `<line x1="${W - mR}" y1="${mT}" x2="${W - mR}" y2="${mT + iH}" stroke="#93a1a1" stroke-width="1"/>`;
+  s += `<line x1="${mL}" y1="${mT + iH}" x2="${W - mR}" y2="${mT + iH}" stroke="#93a1a1" stroke-width="1"/>`;
 
   // X-axis labels (only for indices with at least one setup)
   for (let i = 0; i < dist.length; i++) {
     if (!dist[i]) continue;
     const cx = (xPos(i) + barW / 2).toFixed(1);
     s += `<text x="${cx}" y="${mT + iH + 18}"
-      text-anchor="middle" font-family="sans-serif" font-size="11" fill="#6a5030"
+      text-anchor="middle" font-family="sans-serif" font-size="11" fill="#93a1a1"
       >${labelFn(i)}</text>`;
   }
 
@@ -297,7 +297,7 @@ function renderHistogram(dist, title, labelFn) {
   for (const t of ticks) {
     const cy = yPos(t).toFixed(1);
     s += `<text x="${mL - 7}" y="${+cy + 4}"
-      text-anchor="end" font-family="sans-serif" font-size="10" fill="#6a5030"
+      text-anchor="end" font-family="sans-serif" font-size="10" fill="#93a1a1"
       >${t}</text>`;
   }
 
@@ -306,17 +306,17 @@ function renderHistogram(dist, title, labelFn) {
     const cy = yPos(t).toFixed(1);
     const p  = Math.round(t / SIM_COUNT * 100);
     s += `<text x="${W - mR + 7}" y="${+cy + 4}"
-      text-anchor="start" font-family="sans-serif" font-size="10" fill="#6a5030"
+      text-anchor="start" font-family="sans-serif" font-size="10" fill="#93a1a1"
       >${p}%</text>`;
   }
 
   // Axis titles
   s += `<text x="${mL - 36}" y="${(mT + iH / 2).toFixed(1)}"
-    text-anchor="middle" font-family="sans-serif" font-size="10" fill="#6a5030"
+    text-anchor="middle" font-family="sans-serif" font-size="10" fill="#93a1a1"
     transform="rotate(-90,${mL - 36},${(mT + iH / 2).toFixed(1)})"
     ># Setups</text>`;
   s += `<text x="${W - mR + 36}" y="${(mT + iH / 2).toFixed(1)}"
-    text-anchor="middle" font-family="sans-serif" font-size="10" fill="#6a5030"
+    text-anchor="middle" font-family="sans-serif" font-size="10" fill="#93a1a1"
     transform="rotate(90,${W - mR + 36},${(mT + iH / 2).toFixed(1)})"
     >% Setups</text>`;
 
@@ -364,7 +364,7 @@ function deckLineToggle(chartId, idx) {
 function renderDeckBar(values, labels, title, opts = {}) {
   const {
     barColors   = null,
-    barColor    = '#c9952a',
+    barColor    = '#b58900',
     xFontFamily = 'sans-serif',
     xFontSize   = 11,
     xFills      = null,
@@ -397,13 +397,13 @@ function renderDeckBar(values, labels, title, opts = {}) {
 
   // Title
   s += `<text x="${(W / 2).toFixed(1)}" y="${mT - 14}"
-    text-anchor="middle" font-family="sans-serif" font-size="12" fill="#a89060"
+    text-anchor="middle" font-family="sans-serif" font-size="12" fill="#839496"
     letter-spacing="0.04em">${title}</text>`;
 
   // Grid lines
   for (const t of ticks) {
     const cy = yPos(t).toFixed(1);
-    s += `<line x1="${mL}" y1="${cy}" x2="${W - mR}" y2="${cy}" stroke="#2a1c08" stroke-width="1"/>`;
+    s += `<line x1="${mL}" y1="${cy}" x2="${W - mR}" y2="${cy}" stroke="#d6cfbe" stroke-width="1"/>`;
   }
 
   // Bars
@@ -416,24 +416,24 @@ function renderDeckBar(values, labels, title, opts = {}) {
     const bh = barHt(v);
     const tip = tooltips ? tooltips[i] : '';
     s += `<rect x="${bx.toFixed(1)}" y="${by.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}"
-      fill="${v > 0 ? color : '#1e140a'}" rx="2">${tip ? `<title>${tip}</title>` : ''}</rect>`;
+      fill="${v > 0 ? color : '#d6cfbe'}" rx="2">${tip ? `<title>${tip}</title>` : ''}</rect>`;
     if (v > 0) {
       s += `<text x="${(bx + bw / 2).toFixed(1)}" y="${(by - 4).toFixed(1)}"
-        text-anchor="middle" font-family="sans-serif" font-size="10" fill="#a89060"
+        text-anchor="middle" font-family="sans-serif" font-size="10" fill="#839496"
         pointer-events="none">${v}</text>`;
     }
   }
 
   // Axes
-  s += `<line x1="${mL}" y1="${mT}" x2="${mL}" y2="${mT + iH}" stroke="#4a3510" stroke-width="1"/>`;
-  s += `<line x1="${mL}" y1="${mT + iH}" x2="${W - mR}" y2="${mT + iH}" stroke="#4a3510" stroke-width="1"/>`;
+  s += `<line x1="${mL}" y1="${mT}" x2="${mL}" y2="${mT + iH}" stroke="#93a1a1" stroke-width="1"/>`;
+  s += `<line x1="${mL}" y1="${mT + iH}" x2="${W - mR}" y2="${mT + iH}" stroke="#93a1a1" stroke-width="1"/>`;
 
   // X-axis labels (skip zero-value bars to reduce clutter when many buckets)
   const showAllLabels = n <= 12;
   for (let i = 0; i < n; i++) {
     if (!showAllLabels && !values[i]) continue;
     const cx = (xPos(i) + barW / 2).toFixed(1);
-    const fill = xFills ? (xFills[i] || '#6a5030') : '#6a5030';
+    const fill = xFills ? (xFills[i] || '#93a1a1') : '#93a1a1';
     s += `<text x="${cx}" y="${(mT + iH + 18).toFixed(1)}"
       text-anchor="middle" font-family="${xFontFamily}" font-size="${xFontSize}" fill="${fill}">${labels[i]}</text>`;
   }
@@ -441,13 +441,13 @@ function renderDeckBar(values, labels, title, opts = {}) {
   // Y-axis ticks and labels
   for (const t of ticks) {
     const cy = (yPos(t) + 4).toFixed(1);
-    s += `<text x="${mL - 6}" y="${cy}" text-anchor="end" font-family="sans-serif" font-size="10" fill="#6a5030">${t}</text>`;
+    s += `<text x="${mL - 6}" y="${cy}" text-anchor="end" font-family="sans-serif" font-size="10" fill="#93a1a1">${t}</text>`;
   }
 
   // Y-axis title
   if (yLabel) {
     s += `<text x="${mL - 30}" y="${(mT + iH / 2).toFixed(1)}"
-      text-anchor="middle" font-family="sans-serif" font-size="10" fill="#6a5030"
+      text-anchor="middle" font-family="sans-serif" font-size="10" fill="#93a1a1"
       transform="rotate(-90,${mL - 30},${(mT + iH / 2).toFixed(1)})">${yLabel}</text>`;
   }
 
@@ -505,13 +505,13 @@ function renderDeckLines(series, title, opts = {}) {
 
   // Title
   s += `<text x="${(W / 2).toFixed(1)}" y="${mT - 16}"
-    text-anchor="middle" font-family="sans-serif" font-size="12" fill="#a89060"
+    text-anchor="middle" font-family="sans-serif" font-size="12" fill="#839496"
     letter-spacing="0.04em">${title}</text>`;
 
   // Grid lines
   for (const t of ticks) {
     const cy = yPos(t).toFixed(1);
-    s += `<line x1="${mL}" y1="${cy}" x2="${W - mR}" y2="${cy}" stroke="#2a1c08" stroke-width="1"/>`;
+    s += `<line x1="${mL}" y1="${cy}" x2="${W - mR}" y2="${cy}" stroke="#d6cfbe" stroke-width="1"/>`;
   }
 
   // Series groups — each wrapped in a <g> for opacity toggling
@@ -530,27 +530,27 @@ function renderDeckLines(series, title, opts = {}) {
   }
 
   // Axes
-  s += `<line x1="${mL}" y1="${mT}" x2="${mL}" y2="${mT + iH}" stroke="#4a3510" stroke-width="1"/>`;
-  s += `<line x1="${mL}" y1="${mT + iH}" x2="${W - mR}" y2="${mT + iH}" stroke="#4a3510" stroke-width="1"/>`;
+  s += `<line x1="${mL}" y1="${mT}" x2="${mL}" y2="${mT + iH}" stroke="#93a1a1" stroke-width="1"/>`;
+  s += `<line x1="${mL}" y1="${mT + iH}" x2="${W - mR}" y2="${mT + iH}" stroke="#93a1a1" stroke-width="1"/>`;
 
   // X-axis labels (thin when many ticks)
   const labelEvery = n > 20 ? 5 : n > 12 ? 2 : 1;
   for (let i = 0; i < n; i++) {
     if (i % labelEvery !== 0 && i !== n - 1) continue;
     s += `<text x="${xPos(i).toFixed(1)}" y="${(mT + iH + 16).toFixed(1)}"
-      text-anchor="middle" font-family="sans-serif" font-size="11" fill="#6a5030">${xVals[i]}</text>`;
+      text-anchor="middle" font-family="sans-serif" font-size="11" fill="#93a1a1">${xVals[i]}</text>`;
   }
 
   // Y-axis ticks and labels
   for (const t of ticks) {
     const cy = (yPos(t) + 4).toFixed(1);
-    s += `<text x="${mL - 6}" y="${cy}" text-anchor="end" font-family="sans-serif" font-size="10" fill="#6a5030">${t}</text>`;
+    s += `<text x="${mL - 6}" y="${cy}" text-anchor="end" font-family="sans-serif" font-size="10" fill="#93a1a1">${t}</text>`;
   }
 
   // Y-axis title
   if (yLabel) {
     s += `<text x="${mL - 34}" y="${(mT + iH / 2).toFixed(1)}"
-      text-anchor="middle" font-family="sans-serif" font-size="10" fill="#6a5030"
+      text-anchor="middle" font-family="sans-serif" font-size="10" fill="#93a1a1"
       transform="rotate(-90,${mL - 34},${(mT + iH / 2).toFixed(1)})">${yLabel}</text>`;
   }
 
@@ -566,7 +566,7 @@ function renderDeckLines(series, title, opts = {}) {
     s += `<line x1="${lx.toFixed(1)}" y1="${legendY}" x2="${(lx + 20).toFixed(1)}" y2="${legendY}" stroke="${resolved[i].color}" stroke-width="2"/>`;
     s += `<circle cx="${(lx + 10).toFixed(1)}" cy="${legendY}" r="3" fill="${resolved[i].color}"/>`;
     s += `<text x="${(lx + 26).toFixed(1)}" y="${(legendY + 4).toFixed(1)}"
-      font-family="sans-serif" font-size="11" fill="#a89060">${resolved[i].name}</text>`;
+      font-family="sans-serif" font-size="11" fill="#839496">${resolved[i].name}</text>`;
     s += `</g>`;
   }
 
@@ -599,10 +599,10 @@ function renderDeckCharts(slots, cardMap) {
     factionPresent.map(f => FACTION_ICONS[f] || f),
     'Cards by Faction',
     {
-      barColors:   factionPresent.map(f => FACTION_COLORS[f] || '#c9952a'),
+      barColors:   factionPresent.map(f => FACTION_COLORS[f] || '#b58900'),
       xFontFamily: 'thronesdb',
       xFontSize:   20,
-      xFills:      factionPresent.map(f => FACTION_COLORS[f] || '#6a5030'),
+      xFills:      factionPresent.map(f => FACTION_COLORS[f] || '#93a1a1'),
       tooltips:    factionPresent.map(f => `${FACTION_NAMES[f] || f}: ${factionMap[f]}`),
     }
   );
@@ -620,10 +620,10 @@ function renderDeckCharts(slots, cardMap) {
     'Character Icon Distribution',
     {
       yLabel:      '# Characters',
-      barColors:   ['#d04040', '#40a848', '#4488c8'],
+      barColors:   ['#dc322f', '#859900', '#268bd2'],
       xFontFamily: 'thronesdb',
       xFontSize:   20,
-      xFills:      ['#d04040', '#40a848', '#4488c8'],
+      xFills:      ['#dc322f', '#859900', '#268bd2'],
       tooltips:    [`Military: ${iconCounts[0]}`, `Intrigue: ${iconCounts[1]}`, `Power: ${iconCounts[2]}`],
     }
   );
@@ -673,20 +673,20 @@ function renderDeckCharts(slots, cardMap) {
 
   // ── Combined cost curve (multi-line) ─────────────────────────────────
   const costCurveChart = renderDeckLines([
-    { name: 'Character',       color: '#c9952a', values: charCostData.values, xOffset: charCostData.xOffset },
-    { name: 'Location',        color: '#5aaa60', values: locCostData.values,  xOffset: locCostData.xOffset  },
-    { name: 'Attachment',      color: '#a070d8', values: attCostData.values,  xOffset: attCostData.xOffset  },
-    { name: 'Event',           color: '#6090c0', values: evtCostData.values,  xOffset: evtCostData.xOffset  },
-    { name: 'All Cards',       color: '#e8d5a3', values: allCostData.values,  xOffset: allCostData.xOffset  },
-    { name: 'Char Strength',   color: '#e07040', values: charStrData.values,  xOffset: charStrData.xOffset  },
+    { name: 'Character',       color: '#b58900', values: charCostData.values, xOffset: charCostData.xOffset },
+    { name: 'Location',        color: '#859900', values: locCostData.values,  xOffset: locCostData.xOffset  },
+    { name: 'Attachment',      color: '#6c71c4', values: attCostData.values,  xOffset: attCostData.xOffset  },
+    { name: 'Event',           color: '#268bd2', values: evtCostData.values,  xOffset: evtCostData.xOffset  },
+    { name: 'All Cards',       color: '#657b83', values: allCostData.values,  xOffset: allCostData.xOffset  },
+    { name: 'Char Strength',   color: '#cb4b16', values: charStrData.values,  xOffset: charStrData.xOffset  },
   ], 'Cost & Strength Curve');
 
   // ── Combined plot statistics (multi-line) ────────────────────────────
   const plotStatsChart = renderDeckLines([
-    { name: 'Income',     color: '#c9952a', values: plotIncData.values,   xOffset: plotIncData.xOffset   },
-    { name: 'Initiative', color: '#5aaa60', values: plotInitData.values,  xOffset: plotInitData.xOffset  },
-    { name: 'Claim',      color: '#c05030', values: plotClaimData.values, xOffset: plotClaimData.xOffset },
-    { name: 'Reserve',    color: '#6090c0', values: plotResvData.values,  xOffset: plotResvData.xOffset  },
+    { name: 'Income',     color: '#b58900', values: plotIncData.values,   xOffset: plotIncData.xOffset   },
+    { name: 'Initiative', color: '#859900', values: plotInitData.values,  xOffset: plotInitData.xOffset  },
+    { name: 'Claim',      color: '#dc322f', values: plotClaimData.values, xOffset: plotClaimData.xOffset },
+    { name: 'Reserve',    color: '#268bd2', values: plotResvData.values,  xOffset: plotResvData.xOffset  },
   ], 'Plot Statistics', { yLabel: '# Plots' });
 
   const row = (...cells) => `<div class="deck-chart-grid">${cells.map(c => `<div class="deck-chart-cell">${c}</div>`).join('')}</div>`;
