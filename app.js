@@ -216,7 +216,7 @@ async function fetchAndRenderDeckTable() {
   const section  = document.getElementById('deck-table-section');
   const details  = document.getElementById('deck-table-details');
   const btnWrapper = document.getElementById('analyze-btn-wrapper');
-  if (!deckId) { clearDeckUI(); setStatus(''); return; }
+  if (!deckId) { clearDeckUI(); setStatus('Please insert a valid ThronesDB deck URL or deck ID', 'error'); return; }
 
   setStatus('Loading deck data…', 'loading');
   try {
