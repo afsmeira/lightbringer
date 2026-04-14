@@ -1,6 +1,7 @@
 /* ── Color scheme variables ───────────────────────────────────────────────── */
 /* Solarized Light (default) */
 :root {
+  font-size: 112.5%; /* 18px base — scales all rem values */
   --bg:           #fdf6e3;  /* base3  – page bg & inner elements */
   --bg-alt:       #eee8d5;  /* base2  – panels, cards */
   --text:         #657b83;  /* base00 – body text */
@@ -94,7 +95,7 @@ header p {
   border-radius: 8px;
   padding: 1.75rem 2rem;
   width: 100%;
-  max-width: 680px;
+  max-width: clamp(560px, 50vw, 960px);
   box-shadow: 0 4px 24px var(--shadow-card);
 }
 
@@ -157,7 +158,7 @@ button:disabled { background: var(--border); cursor: not-allowed; }
   display: none;
   margin-top: 2rem;
   width: 100%;
-  max-width: 680px;
+  max-width: clamp(560px, 50vw, 960px);
 }
 
 .panel {
@@ -820,7 +821,7 @@ button:disabled { background: var(--border); cursor: not-allowed; }
 #how-it-works-panel,
 #deck-input-panel {
   width: 100%;
-  max-width: 680px;
+  max-width: clamp(560px, 50vw, 960px);
 }
 #how-it-works-panel { margin: 2rem auto 0; }
 #deck-input-panel   { margin-top: 1.5rem; }
