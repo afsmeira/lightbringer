@@ -29,7 +29,7 @@ cd lightbringer
 open index.html
 ```
 
-The app fetches card data from the [ThronesDB public API](https://thronesdb.com/api/public/cards), so an internet connection is required on first load.
+The app fetches card data from the [ThronesDB public API](https://thronesdb.com/api), so an internet connection is required on first load.
 
 ## Contributing
 
