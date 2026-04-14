@@ -4,6 +4,8 @@ A setup analyzer for *A Game of Thrones: The Card Game — 2nd Edition*.
 
 Paste a [ThronesDB](https://thronesdb.com) deck URL and Lightbringer simulates **5000 opening hands**, evaluating every valid setup for each hand and picking the best one according to configurable ranking criteria.
 
+**[Try it live](https://afsmeira.github.io/lightbringer/)**
+
 ## Features
 
 - **Setup statistics** — how often a deck produces poor setups, how often it mulligans, average gold and card count across all simulated hands.
