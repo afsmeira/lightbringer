@@ -71,6 +71,9 @@ let currentSlots   = null;
 /** Card map for the active deck. */
 let currentCardMap = null;
 
+/** ThronesDB deck ID of the active deck. */
+let currentDeckId  = null;
+
 /** True when the active deck contains agenda 08039 (The House With the Red Door). */
 let hasRedDoor     = false;
 

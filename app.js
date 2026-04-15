@@ -134,6 +134,59 @@ function updateEconomyFlags() {
   }
 }
 
+// ── Deck preferences (localStorage) ───────────────────────────────────────
+
+const PREFS_KEY = id => `lb_deck_${id}`;
+
+/** Saves the current deck table checkbox state to localStorage under the active deck ID. */
+function saveDeckPrefs() {
+  if (!currentDeckId) return;
+  const section = document.getElementById('deck-table-section');
+  const codes = cls => [...section.querySelectorAll(`${cls}:checked`)]
+    .map(cb => cb.closest('tr').dataset.code);
+  const redDoorCb = section.querySelector('.red-door-cb:checked');
+  localStorage.setItem(PREFS_KEY(currentDeckId), JSON.stringify({
+    economy:    codes('.economy-cb'),
+    key:        codes('.key-cb'),
+    avoidable:  codes('.avoidable-cb'),
+    restricted: codes('.restricted-cb'),
+    redDoor:    redDoorCb ? redDoorCb.closest('tr').dataset.code : null,
+  }));
+}
+
+/**
+ * Applies saved checkbox preferences to the deck table.
+ * Saved state fully replaces computed defaults; cards absent from the deck are ignored.
+ * Must be called after the Red Door change listener is registered so that dispatching
+ * a change event on the Red Door checkbox correctly triggers mutual exclusion.
+ */
+function applyDeckPrefs(section) {
+  const stored = localStorage.getItem(PREFS_KEY(currentDeckId));
+  if (!stored) return;
+  let prefs;
+  try { prefs = JSON.parse(stored); } catch { return; }
+
+  const apply = (codes, cls) => {
+    if (!Array.isArray(codes)) return;
+    const saved = new Set(codes);
+    section.querySelectorAll('tr[data-code]').forEach(row => {
+      const cb = row.querySelector(cls);
+      if (cb && !cb.disabled) cb.checked = saved.has(row.dataset.code);
+    });
+  };
+
+  apply(prefs.economy,    '.economy-cb');
+  apply(prefs.key,        '.key-cb');
+  apply(prefs.avoidable,  '.avoidable-cb');
+  apply(prefs.restricted, '.restricted-cb');
+
+  if (prefs.redDoor && hasRedDoor) {
+    const row = section.querySelector(`tr[data-code="${prefs.redDoor}"]`);
+    const cb  = row?.querySelector('.red-door-cb');
+    if (cb) { cb.checked = true; cb.dispatchEvent(new Event('change', { bubbles: true })); }
+  }
+}
+
 // ── Analyze ───────────────────────────────────────────────────────────────
 
 /** Clears the deck table content and hides all deck-related panels. */
@@ -201,6 +254,7 @@ async function fetchAndRenderDeckTable() {
     hasRedDoor = Object.keys(slots).includes('08039');
     currentSlots   = slots;
     currentCardMap = cardMap;
+    currentDeckId  = deckId;
 
     const rows = Object.entries(slots)
       .map(([code, qty]) => ({ card: cardMap[code], qty }))
@@ -324,6 +378,7 @@ async function fetchAndRenderDeckTable() {
         updateAnalyzeButton();
       });
     }
+    applyDeckPrefs(section);
     updateAnalyzeButton();
   } catch (err) {
     setStatus(`Error: ${err.message}`, 'error');
@@ -381,3 +436,6 @@ async function fetchAndRenderDeckTable() {
     tooltipImg.src = '';
   });
 }
+
+// Auto-save deck preferences whenever any checkbox in the deck table changes.
+document.getElementById('deck-table-section').addEventListener('change', saveDeckPrefs);
