@@ -3,17 +3,21 @@
  * Removes exactly one copy of the Red Door location when the agenda is active,
  * since it is placed behind the door before setup begins.
  */
-function buildDeckPool(slots, cardMap, redDoorCode) {
+function buildDeckPool(slots, cardMap, redDoorCode, armedCodes) {
   const pool = [];
   let redDoorRemoved = false;
+  const armedRemoved = new Set();
   for (const [code, qty] of Object.entries(slots)) {
     const card = cardMap[code];
     if (!card || NON_DECK_TYPES.has(card.type_name)) continue;
     for (let i = 0; i < qty; i++) {
-      // Remove exactly one copy of the Red Door location from the pool —
-      // it's played behind the door before setup begins.
       if (redDoorCode && code === redDoorCode && !redDoorRemoved) {
         redDoorRemoved = true;
+        continue;
+      }
+      // Remove exactly one copy of each armed attachment — it's set aside before setup.
+      if (armedCodes && armedCodes.has(code) && !armedRemoved.has(code)) {
+        armedRemoved.add(code);
         continue;
       }
       pool.push(card);
@@ -379,7 +383,8 @@ function runSimulations() {
   // Defer to next frame so the browser can repaint before the heavy loop
   setTimeout(() => {
     const redDoorCode = hasRedDoor ? getRedDoorLocationCode() : null;
-    const pool = buildDeckPool(currentSlots, currentCardMap, redDoorCode);
+    const armedCodes  = hasArmedToTheTeeth ? getArmedToTeethSet() : null;
+    const pool = buildDeckPool(currentSlots, currentCardMap, redDoorCode, armedCodes);
     let poorCount = 0, economyCount = 0, limitedCount = 0, mulliganCount = 0, mulliganSuccessCount = 0;
     let totalGold = 0, totalCards = 0;
     const goldDist      = new Array(SETUP_GOLD + 1).fill(0);

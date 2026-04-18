@@ -480,7 +480,7 @@ button:disabled { background: var(--border); cursor: not-allowed; }
   pointer-events: none;
 }
 
-.deck-table tr.deck-table-disabled input[type="checkbox"],
+.deck-table tr.deck-table-disabled input[type="checkbox"]:not(.armed-cb),
 .deck-table input[type="checkbox"]:disabled {
   border-color: var(--border-sub);
   opacity: 0.35;

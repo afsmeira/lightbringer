@@ -75,7 +75,10 @@ let currentCardMap = null;
 let currentDeckId  = null;
 
 /** True when the active deck contains agenda 08039 (The House With the Red Door). */
-let hasRedDoor     = false;
+let hasRedDoor         = false;
+
+/** True when the active deck contains agenda 26120 (Armed to the Teeth). */
+let hasArmedToTheTeeth = false;
 
 
 // ── Known card sets ────────────────────────────────────────────────────────

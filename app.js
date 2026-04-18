@@ -122,6 +122,14 @@ function getRestrictedSet() {
   );
 }
 
+/** Returns the set of card codes currently checked as Armed to the Teeth in the deck table. */
+function getArmedToTeethSet() {
+  return new Set(
+    [...document.querySelectorAll('#deck-table-section .armed-cb:checked')]
+      .map(cb => cb.closest('tr').dataset.code)
+  );
+}
+
 /** Updates the is_economy flag on all cached cards based on deck table Economy checkboxes. */
 function updateEconomyFlags() {
   if (!cachedCards) return;
@@ -150,6 +158,7 @@ function saveDeckPrefs() {
     key:        codes('.key-cb'),
     avoidable:  codes('.avoidable-cb'),
     restricted: codes('.restricted-cb'),
+    armed:      codes('.armed-cb'),
     redDoor:    redDoorCb ? redDoorCb.closest('tr').dataset.code : null,
   }));
 }
@@ -179,6 +188,7 @@ function applyDeckPrefs(section) {
   apply(prefs.key,        '.key-cb');
   apply(prefs.avoidable,  '.avoidable-cb');
   apply(prefs.restricted, '.restricted-cb');
+  apply(prefs.armed,      '.armed-cb');
 
   if (prefs.redDoor && hasRedDoor) {
     const row = section.querySelector(`tr[data-code="${prefs.redDoor}"]`);
@@ -251,7 +261,8 @@ async function fetchAndRenderDeckTable() {
     ]);
 
     const slots = decklist.slots || {};
-    hasRedDoor = Object.keys(slots).includes('08039');
+    hasRedDoor         = Object.keys(slots).includes('08039');
+    hasArmedToTheTeeth = Object.keys(slots).includes('26120');
     currentSlots   = slots;
     currentCardMap = cardMap;
     currentDeckId  = deckId;
@@ -273,7 +284,7 @@ async function fetchAndRenderDeckTable() {
     const opponentRestrictedIds = new Set(
       [...attachmentWithRestrictions].filter(e => e.opponent === true).map(e => e.id)
     );
-    const colCount = hasRedDoor ? 6 : 5;
+    const colCount = 5 + (hasRedDoor ? 1 : 0) + (hasArmedToTheTeeth ? 1 : 0);
     let lastType = null;
     const trs = rows.map(({ card, qty }) => {
       const name = qty > 1 ? `${card.label || card.name} ×${qty}` : (card.label || card.name);
@@ -294,6 +305,9 @@ async function fetchAndRenderDeckTable() {
       const redDoorCell = hasRedDoor
         ? `<td>${isRedDoorEligible ? cb(false, false).replace('<input', '<input class="red-door-cb"') : ''}</td>`
         : '';
+      const armedCell = hasArmedToTheTeeth
+        ? `<td>${card.type_name === 'Attachment' ? cb(false, false).replace('<input', '<input class="armed-cb"') : ''}</td>`
+        : '';
       const separator = card.type_name !== lastType
         ? `<tr class="deck-table-type-sep"><td colspan="${colCount}">${card.type_name}</td></tr>`
         : '';
@@ -305,6 +319,7 @@ async function fetchAndRenderDeckTable() {
         <td>${cb(isAvoidable, isDisabled).replace('<input', '<input class="avoidable-cb"')}</td>
         <td>${cb(isRestricted, isDisabled).replace('<input', '<input class="restricted-cb"')}</td>
         ${redDoorCell}
+        ${armedCell}
       </tr>`;
     }).join('');
 
@@ -331,6 +346,10 @@ async function fetchAndRenderDeckTable() {
       ? `<div>🚪 — <b>Red Door</b>: The unique location set up behind The House With the Red Door (cost ≤ 3, non-limited). Exactly one must be selected. It is removed from the deck before setup and setup gold is reduced to 4.</div>`
       : '';
     const redDoorHeader = hasRedDoor ? '<th>🚪</th>' : '';
+    const armedLegend = hasArmedToTheTeeth
+      ? `<div>🪓 — <b>Armed to the Teeth</b>: Attachments set aside before setup begins (up to 5, one copy each). These cards are removed from the deck before simulating.</div>`
+      : '';
+    const armedHeader = hasArmedToTheTeeth ? '<th>🪓</th>' : '';
     const shadowNote = hasShadowCards
       ? `<p class="deck-table-note">Cards with <b>Shadow</b> are always set up into shadows during simulation.</p>`
       : '';
@@ -341,6 +360,7 @@ async function fetchAndRenderDeckTable() {
         <div>😐 — <b>Avoidable</b>: Cards that should be avoided in setup because they have reactions to entering play (e.g. cards with Bestow)</div>
         <div>🚫 — <b>Restricted</b>: Cards that are illegal to be played during setup (e.g. never have valid targets) or that make no sense (e.g. Milk of the Poppy). These cards are never selected for setups.</div>
         ${redDoorLegend}
+        ${armedLegend}
       </div>
       <table class="deck-table">
         <thead><tr>
@@ -350,6 +370,7 @@ async function fetchAndRenderDeckTable() {
           <th>😐</th>
           <th>🚫</th>
           ${redDoorHeader}
+          ${armedHeader}
         </tr></thead>
         <tbody>${trs}</tbody>
       </table>
@@ -381,6 +402,13 @@ async function fetchAndRenderDeckTable() {
           rowCbs.forEach(cb => { cb.disabled = false; });
         }
         updateAnalyzeButton();
+      });
+    }
+    if (hasArmedToTheTeeth) {
+      section.addEventListener('change', e => {
+        if (!e.target.classList.contains('armed-cb')) return;
+        if (e.target.checked && section.querySelectorAll('.armed-cb:checked').length > 5)
+          e.target.checked = false;
       });
     }
     applyDeckPrefs(section);
