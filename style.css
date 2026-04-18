@@ -955,6 +955,14 @@ button:disabled { background: var(--border); cursor: not-allowed; }
   margin-top: 0.75rem;
 }
 
+.deck-table-note {
+  font-size: 0.78rem;
+  color: #cb4b16;
+  text-align: center;
+  margin-top: 0.6rem;
+  margin-bottom: 0;
+}
+
 /* SVG chart base */
 .chart-svg {
   width: 100%;

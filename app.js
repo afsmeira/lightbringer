@@ -326,10 +326,14 @@ async function fetchAndRenderDeckTable() {
       </div>`;
     deckTitleEl.style.display = 'flex';
 
+    const hasShadowCards = rows.some(({ card }) => card.shadow);
     const redDoorLegend = hasRedDoor
       ? `<div>🚪 — <b>Red Door</b>: The unique location set up behind The House With the Red Door (cost ≤ 3, non-limited). Exactly one must be selected. It is removed from the deck before setup and setup gold is reduced to 4.</div>`
       : '';
     const redDoorHeader = hasRedDoor ? '<th>🚪</th>' : '';
+    const shadowNote = hasShadowCards
+      ? `<p class="deck-table-note">Cards with <b>Shadow</b> are always set up into shadows during simulation.</p>`
+      : '';
     section.innerHTML = `
       <div class="deck-legend">
         <div>💰 — <b>Economy</b>: Cards that contribute to the deck economy (e.g. limited, provides income, cost reduction)</div>
@@ -348,7 +352,8 @@ async function fetchAndRenderDeckTable() {
           ${redDoorHeader}
         </tr></thead>
         <tbody>${trs}</tbody>
-      </table>`;
+      </table>
+      ${shadowNote}`;
     setStatus('');
     details.style.display = 'block';
     details.setAttribute('open', '');
