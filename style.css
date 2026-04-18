@@ -76,18 +76,24 @@ header {
   margin-bottom: 2.5rem;
 }
 
+.footer-spacer {
+  flex: 1;
+  min-height: 3rem;
+  width: 100%;
+}
+
 footer {
-  margin-top: 3rem;
-  padding-bottom: 2rem;
+  margin-top: 0;
+  padding: 1rem 1.5rem;
   text-align: center;
   font-size: 0.78rem;
   color: var(--text-muted);
-  line-height: 1.8;
+  border-top: 1px solid var(--border-sub);
+  background: var(--panel-bg);
 }
-
-footer a {
-  color: var(--text-muted);
-}
+footer p { margin: 0; }
+footer a { color: var(--text-muted); }
+.footer-sep { margin: 0 0.6em; opacity: 0.5; }
 
 header h1 {
   font-size: 2.5rem;
