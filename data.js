@@ -47,6 +47,11 @@ const FACTION_NAMES = {
   neutral:        "Neutral",
 };
 
+/** Reverse of FACTION_NAMES: lowercase display name → faction code. */
+const FACTION_CODE_BY_NAME = Object.fromEntries(
+  Object.entries(FACTION_NAMES).map(([code, name]) => [name.toLowerCase(), code])
+);
+
 /** Unicode code points in the ThronesDB icon font for each faction. */
 const FACTION_ICONS = {
   stark:          '\ue608',

@@ -16,6 +16,52 @@ function parseDeckId(raw) {
   return null;
 }
 
+/** Builds a lowercase-name → card[] lookup from the full card map, keeping all printings. */
+function buildCardNameIndex(cardMap) {
+  const index = new Map();
+  for (const card of Object.values(cardMap)) {
+    const key = card.name.toLowerCase();
+    if (!index.has(key)) index.set(key, []);
+    index.get(key).push(card);
+  }
+  return index;
+}
+
+/** Parses a ThronesDB decklist text export into { name, factionName, agendaNames, cardEntries }. */
+function parseDecklistText(text) {
+  const cardLineRe = /^(\d+)x\s+(.+?)\s+\(([^)]+)\)$/;
+  const sectionRe  = /^.+\s+\(\d+\):$/;
+  const lines = text.split('\n').map(l => l.trim());
+
+  let i = 0;
+  while (i < lines.length && !lines[i]) i++;
+  if (i >= lines.length) return null;
+  const name = lines[i++];
+
+  while (i < lines.length && !lines[i]) i++;
+  if (i >= lines.length) return null;
+  const factionName = lines[i++];
+
+  const agendaNames = [];
+  while (i < lines.length) {
+    const line = lines[i];
+    if (!line) { i++; continue; }
+    if (line.startsWith('Packs:') || sectionRe.test(line)) break;
+    agendaNames.push(line);
+    i++;
+  }
+
+  const cardEntries = [];
+  for (; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line || line.startsWith('Packs:') || sectionRe.test(line)) continue;
+    const m = line.match(cardLineRe);
+    if (m) cardEntries.push({ qty: parseInt(m[1]), name: m[2], packCode: m[3] });
+  }
+
+  return { name, factionName, agendaNames, cardEntries };
+}
+
 /** Fetches a URL and returns the parsed JSON; throws on non-2xx status. */
 async function fetchJson(url) {
   const res = await fetch(url);
@@ -243,14 +289,19 @@ function updateAnalyzeButton() {
   msg.style.display = needsSelection ? 'block' : 'none';
 }
 
-/** Fetches a deck by URL/ID, renders the deck table, configuration panels, and deck charts. */
+/** Switches between the 'url' and 'paste' deck input tabs. */
+function switchDeckTab(tab) {
+  document.getElementById('tab-panel-url').style.display   = tab === 'url'   ? '' : 'none';
+  document.getElementById('tab-panel-paste').style.display = tab === 'paste' ? '' : 'none';
+  document.getElementById('tab-url').classList.toggle('active',   tab === 'url');
+  document.getElementById('tab-paste').classList.toggle('active', tab === 'paste');
+}
+
+/** Fetches a deck by URL/ID and renders it. */
 async function fetchAndRenderDeckTable() {
   document.getElementById('setup-section').style.display = 'none';
   const urlInput = document.getElementById('deck-url').value;
   const deckId   = parseDeckId(urlInput);
-  const section  = document.getElementById('deck-table-section');
-  const details  = document.getElementById('deck-table-details');
-  const btnWrapper = document.getElementById('analyze-btn-wrapper');
   if (!deckId) { clearDeckUI(); setStatus('Please insert a valid ThronesDB deck URL or deck ID', 'error'); return; }
 
   setStatus('Loading deck data…', 'loading');
@@ -259,13 +310,85 @@ async function fetchAndRenderDeckTable() {
       fetchJson(DECKLIST_API(deckId)),
       getAllCards(),
     ]);
+    currentDeckId = deckId;
+    renderDeckFromData(decklist, cardMap);
+  } catch (err) {
+    setStatus(`Error: ${err.message}`, 'error');
+    clearDeckUI();
+  }
+}
 
+/** Parses a pasted ThronesDB decklist export and renders it. */
+async function loadPastedDecklist() {
+  const text = document.getElementById('deck-paste').value.trim();
+  if (!text) { setStatus('Please paste a decklist first.', 'error'); return; }
+
+  document.getElementById('setup-section').style.display = 'none';
+  setStatus('Parsing decklist…', 'loading');
+  try {
+    const cardMap = await getAllCards();
+    const parsed  = parseDecklistText(text);
+    if (!parsed) { setStatus('Could not parse the pasted decklist.', 'error'); clearDeckUI(); return; }
+
+    const nameIndex = buildCardNameIndex(cardMap);
+    const slots     = {};
+    const notFound  = [];
+
+    for (const { name, qty, packCode } of parsed.cardEntries) {
+      const matches = nameIndex.get(name.toLowerCase());
+      const card = matches?.find(c => c.pack_code.toLowerCase() === packCode.toLowerCase());
+      if (!card) { notFound.push(`${name} (${packCode})`); continue; }
+      slots[card.code] = (slots[card.code] || 0) + qty;
+    }
+    const missingAgendas = [];
+    for (const agendaName of parsed.agendaNames) {
+      const agenda = Object.values(cardMap).find(
+        c => c.type_name === 'Agenda' && c.name.toLowerCase() === agendaName.toLowerCase()
+      );
+      if (agenda) slots[agenda.code] = 1;
+      else missingAgendas.push(agendaName);
+    }
+
+    if (notFound.length > 0) {
+      const preview = notFound.slice(0, 3).join(', ') + (notFound.length > 3 ? '…' : '');
+      setStatus(`Error: ${notFound.length} card(s) not found - ${preview}`, 'error');
+      clearDeckUI();
+      return;
+    }
+
+    if (missingAgendas.length > 0) {
+      setStatus(`Error: agenda not found - ${missingAgendas.join(', ')}`, 'error');
+      clearDeckUI();
+      return;
+    }
+
+    const factionCode = FACTION_CODE_BY_NAME[parsed.factionName.toLowerCase()];
+    if (!factionCode) {
+      setStatus(`Error: unrecognised faction "${parsed.factionName}"`, 'error');
+      clearDeckUI();
+      return;
+    }
+    const decklist    = { name: parsed.name, faction_code: factionCode, slots };
+    currentDeckId     = 'paste_' + parsed.name.replace(/\W+/g, '_').toLowerCase();
+    renderDeckFromData(decklist, cardMap);
+  } catch (err) {
+    setStatus(`Error: ${err.message}`, 'error');
+    clearDeckUI();
+  }
+}
+
+/** Renders the deck table, configuration panels, and deck charts for a loaded decklist. */
+function renderDeckFromData(decklist, cardMap) {
+  const section    = document.getElementById('deck-table-section');
+  const details    = document.getElementById('deck-table-details');
+  const btnWrapper = document.getElementById('analyze-btn-wrapper');
+
+  try {
     const slots = decklist.slots || {};
     hasRedDoor         = Object.keys(slots).includes('08039');
     hasArmedToTheTeeth = Object.keys(slots).includes('26120');
     currentSlots   = slots;
     currentCardMap = cardMap;
-    currentDeckId  = deckId;
 
     const rows = Object.entries(slots)
       .map(([code, qty]) => ({ card: cardMap[code], qty }))

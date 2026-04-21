@@ -39,15 +39,32 @@
 
   <div class="panel" id="deck-input-panel">
     <div class="panel-title">Deck</div>
-    <div class="input-row">
-      <input
-        type="text"
-        id="deck-url"
-        placeholder="https://thronesdb.com/decklist/view/12345/deck-name"
-        autocomplete="off"
+    <div class="deck-tabs">
+      <button class="deck-tab active" id="tab-url" onclick="switchDeckTab('url')">Deck URL</button>
+      <button class="deck-tab" id="tab-paste" onclick="switchDeckTab('paste')">Decklist</button>
+    </div>
+    <div id="tab-panel-url">
+      <div class="input-row">
+        <input
+          type="text"
+          id="deck-url"
+          placeholder="https://thronesdb.com/decklist/view/12345/deck-name"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button id="load-deck-btn" onclick="fetchAndRenderDeckTable()">Load</button>
+      </div>
+    </div>
+    <div id="tab-panel-paste" style="display:none">
+      <textarea
+        id="deck-paste"
+        rows="8"
+        placeholder="Paste a ThronesDB plain text decklist export here…"
         spellcheck="false"
-      />
-      <button id="load-deck-btn" onclick="fetchAndRenderDeckTable()">Load</button>
+      ></textarea>
+      <div class="paste-btn-row">
+        <button id="load-paste-btn" onclick="loadPastedDecklist()">Load</button>
+      </div>
     </div>
     <div id="status"></div>
     <div id="deck-title"></div>

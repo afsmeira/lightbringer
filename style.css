@@ -147,6 +147,72 @@ input[type="text"] {
 input[type="text"]:focus { border-color: #b58900; }
 input[type="text"]::placeholder { color: var(--border); }
 
+#deck-paste {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 0.6rem 0.85rem;
+  color: var(--text);
+  font-family: 'Georgia', serif;
+  font-size: 0.85rem;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s;
+}
+#deck-paste:focus { border-color: #b58900; }
+#deck-paste::placeholder { color: var(--border); }
+
+.paste-btn-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.75rem;
+}
+
+#load-paste-btn {
+  font-size: 1rem;
+  padding: 0.6rem 0;
+  width: 60%;
+}
+
+.deck-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-sub);
+  margin-bottom: 1rem;
+}
+
+.deck-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  padding: 0.4rem 0.9rem;
+  font-family: 'Georgia', serif;
+  font-size: 0.88rem;
+  font-weight: normal;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+  margin-bottom: -1px;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.deck-tab:hover {
+  background: none;
+  color: var(--text);
+}
+
+.deck-tab:active {
+  transform: none;
+}
+
+.deck-tab.active {
+  color: #b58900;
+  border-bottom-color: #b58900;
+  font-weight: bold;
+}
+
 button {
   background: #b58900;
   color: var(--bg);
