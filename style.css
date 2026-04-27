@@ -24,15 +24,15 @@
   color-scheme: light;
 }
 
-/* Solarized Dark */
+/* Solarized Dark — applied via system preference or explicit data-theme="dark" */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg:           #002b36;  /* base03 */
-    --bg-alt:       #073642;  /* base02 */
-    --text:         #839496;  /* base0  */
-    --text-em:      #93a1a1;  /* base1  */
-    --text-muted:   #657b83;  /* base00 */
-    --border:       #586e75;  /* base01 */
+  :root:not([data-theme="light"]) {
+    --bg:           #002b36;
+    --bg-alt:       #073642;
+    --text:         #839496;
+    --text-em:      #93a1a1;
+    --text-muted:   #657b83;
+    --border:       #586e75;
     --border-sub:   #1d4a59;
     --border-faint: #0e3d4e;
     --shadow-card:  rgba(0,0,0,0.30);
@@ -48,14 +48,40 @@
     --combo-poor:   #1e0e0e;
     color-scheme: dark;
   }
-
-  /* SVG chart infrastructure — CSS overrides SVG presentation attributes */
-  .chart-svg [fill="#839496"]   { fill:   var(--text-muted); }
-  .chart-svg [fill="#93a1a1"]   { fill:   var(--border); }
-  .chart-svg [fill="#d6cfbe"]   { fill:   var(--border-sub); }
-  .chart-svg [stroke="#d6cfbe"] { stroke: var(--border-sub); }
-  .chart-svg [stroke="#93a1a1"] { stroke: var(--border); }
+  :root:not([data-theme="light"]) .chart-svg [fill="#839496"]   { fill:   var(--text-muted); }
+  :root:not([data-theme="light"]) .chart-svg [fill="#93a1a1"]   { fill:   var(--border); }
+  :root:not([data-theme="light"]) .chart-svg [fill="#d6cfbe"]   { fill:   var(--border-sub); }
+  :root:not([data-theme="light"]) .chart-svg [stroke="#d6cfbe"] { stroke: var(--border-sub); }
+  :root:not([data-theme="light"]) .chart-svg [stroke="#93a1a1"] { stroke: var(--border); }
 }
+
+:root[data-theme="dark"] {
+  --bg:           #002b36;
+  --bg-alt:       #073642;
+  --text:         #839496;
+  --text-em:      #93a1a1;
+  --text-muted:   #657b83;
+  --border:       #586e75;
+  --border-sub:   #1d4a59;
+  --border-faint: #0e3d4e;
+  --shadow-card:  rgba(0,0,0,0.30);
+  --shadow-tip:   rgba(0,0,0,0.50);
+  --sim-dim:      #2d4a58;
+  --sim-sep:      #586e75;
+  --badge-char:   #2c1414;
+  --badge-loc:    #132211;
+  --badge-att:    #161634;
+  --badge-evt:    #221c07;
+  --badge-oth:    #073642;
+  --badge-mul:    #0d2038;
+  --combo-poor:   #1e0e0e;
+  color-scheme: dark;
+}
+:root[data-theme="dark"] .chart-svg [fill="#839496"]   { fill:   var(--text-muted); }
+:root[data-theme="dark"] .chart-svg [fill="#93a1a1"]   { fill:   var(--border); }
+:root[data-theme="dark"] .chart-svg [fill="#d6cfbe"]   { fill:   var(--border-sub); }
+:root[data-theme="dark"] .chart-svg [stroke="#d6cfbe"] { stroke: var(--border-sub); }
+:root[data-theme="dark"] .chart-svg [stroke="#93a1a1"] { stroke: var(--border); }
 
 /* ── Reset ────────────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -74,6 +100,39 @@ body {
 header {
   text-align: center;
   margin-bottom: 2.5rem;
+  width: 100%;
+  max-width: clamp(560px, 50vw, 960px);
+  position: relative;
+}
+
+#theme-toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: none;
+  border: 1px solid var(--border-sub);
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+#theme-toggle:hover {
+  background: var(--bg-alt);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+#theme-toggle:active {
+  transform: scale(0.95);
 }
 
 .footer-spacer {

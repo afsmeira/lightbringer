@@ -7,6 +7,24 @@ function setStatus(msg, type = '') {
   el.className = type;
 }
 
+/** Toggles between light and dark mode, persisting the choice. */
+function toggleTheme() {
+  const root = document.documentElement;
+  const isDark = root.getAttribute('data-theme') === 'dark' ||
+    (root.getAttribute('data-theme') !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const next = isDark ? 'light' : 'dark';
+  root.setAttribute('data-theme', next);
+  localStorage.setItem('lb_theme', next);
+  document.getElementById('theme-toggle').textContent = next === 'dark' ? '☀️' : '🌙';
+}
+
+(function initThemeToggle() {
+  const root = document.documentElement;
+  const isDark = root.getAttribute('data-theme') === 'dark' ||
+    (root.getAttribute('data-theme') !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  document.getElementById('theme-toggle').textContent = isDark ? '☀️' : '🌙';
+})();
+
 /** Parses a ThronesDB deck ID from a full URL or a bare numeric string. Returns null if unrecognised. */
 function parseDeckId(raw) {
   raw = raw.trim();
