@@ -749,6 +749,7 @@ button:disabled { background: var(--border); cursor: not-allowed; }
   padding: 0.4rem 0.7rem;
   cursor: grab;
   user-select: none;
+  touch-action: none;
   color: var(--text);
   font-size: 0.88rem;
 }

@@ -357,6 +357,48 @@ function renderSortCriteria() {
       dragSrcRank = null;
     });
   });
+
+  // Touch drag-and-drop for mobile (HTML5 drag events don't fire on touch devices)
+  let touchSrcRank = null;
+  let touchOverItem = null;
+
+  const clearTouchState = () => {
+    list.querySelectorAll('.sort-criterion').forEach(i => i.classList.remove('drag-over'));
+    touchSrcRank = null;
+    touchOverItem = null;
+  };
+
+  list.querySelectorAll('.sort-criterion').forEach(item => {
+    item.addEventListener('touchstart', () => {
+      touchSrcRank = parseInt(item.dataset.rank);
+    }, { passive: true });
+
+    item.addEventListener('touchmove', e => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const target = document.elementFromPoint(touch.clientX, touch.clientY);
+      const overItem = target?.closest('.sort-criterion');
+      if (touchOverItem && touchOverItem !== overItem) touchOverItem.classList.remove('drag-over');
+      if (overItem && overItem !== item) overItem.classList.add('drag-over');
+      touchOverItem = (overItem && overItem !== item) ? overItem : null;
+    }, { passive: false });
+
+    item.addEventListener('touchend', () => {
+      if (touchOverItem !== null && touchSrcRank !== null) {
+        const destRank = parseInt(touchOverItem.dataset.rank);
+        if (touchSrcRank !== destRank) {
+          const moved = sortCriteriaOrder.splice(touchSrcRank, 1)[0];
+          sortCriteriaOrder.splice(destRank, 0, moved);
+          clearTouchState();
+          renderSortCriteria();
+          return;
+        }
+      }
+      clearTouchState();
+    });
+
+    item.addEventListener('touchcancel', clearTouchState);
+  });
 }
 
 /** Sorts setups by the current criteria order; first differentiating criterion wins. */
