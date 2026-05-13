@@ -102,13 +102,15 @@ header {
   margin-bottom: 2.5rem;
   width: 100%;
   max-width: clamp(560px, 50vw, 960px);
-  position: relative;
+}
+
+.header-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.5rem;
 }
 
 #theme-toggle {
-  position: absolute;
-  top: 0;
-  right: 0;
   background: none;
   border: 1px solid var(--border-sub);
   border-radius: 50%;
